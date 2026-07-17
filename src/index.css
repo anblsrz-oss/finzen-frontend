@@ -18,3 +18,11 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Safe areas (notch / home indicator) para la app nativa e iOS PWA. */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}

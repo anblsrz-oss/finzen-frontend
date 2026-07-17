@@ -16,5 +16,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    // PKCE: requerido para el login nativo (exchangeCodeForSession vía deep link).
+    flowType: 'pkce',
   },
 })

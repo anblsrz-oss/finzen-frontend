@@ -8,6 +8,10 @@ import { DashboardPage } from '@/features/reports/DashboardPage'
 import { AccountsPage } from '@/features/accounts/AccountsPage'
 import { CardsPage } from '@/features/cards/CardsPage'
 import { TransactionsPage } from '@/features/transactions/TransactionsPage'
+import { ImportPage } from '@/features/import/ImportPage'
+import { EmailSyncPage } from '@/features/email/EmailSyncPage'
+import { SmsSyncPage } from '@/features/sms/SmsSyncPage'
+import { ConnectBankPage } from '@/features/connect/ConnectBankPage'
 import { CategoriesPage } from '@/features/categories/CategoriesPage'
 import { YieldsPage } from '@/features/yields/YieldsPage'
 import { ReportsPage } from '@/features/reports/ReportsPage'
@@ -34,6 +38,10 @@ export default function App() {
         <Route path="/cuentas" element={<AccountsPage />} />
         <Route path="/tarjetas" element={<CardsPage />} />
         <Route path="/transacciones" element={<TransactionsPage />} />
+        <Route path="/importar" element={<ImportPage />} />
+        <Route path="/correo" element={<EmailSyncPage />} />
+        <Route path="/sms" element={<SmsSyncPage />} />
+        <Route path="/conectar" element={<ConnectBankPage />} />
         <Route path="/categorias" element={<CategoriesPage />} />
         <Route path="/rendimientos" element={<YieldsPage />} />
         <Route path="/reportes" element={<ReportsPage />} />

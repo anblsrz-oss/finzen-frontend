@@ -33,16 +33,22 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
     color: d.color,
   }))
 
+  const total = chartData.reduce((sum, d) => sum + d.value, 0)
+
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={320}>
       <PieChart>
         <Pie
           data={chartData}
           cx="50%"
-          cy="50%"
+          cy="45%"
           labelLine={false}
-          label={({ name, value }) => `${name}: $${value.toLocaleString()}`}
-          outerRadius={80}
+          // Solo el porcentaje dentro del pastel: evita que nombres largos
+          // se desborden del contenedor en móvil. Los nombres van en la leyenda.
+          label={({ percent }) =>
+            percent && percent > 0.05 ? `${Math.round(percent * 100)}%` : ''
+          }
+          outerRadius="70%"
           fill="#8884d8"
           dataKey="value"
         >
@@ -50,8 +56,15 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
             <Cell key={`cell-${index}`} fill={entry.color} />
           ))}
         </Pie>
-        <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
-        <Legend />
+        <Tooltip
+          formatter={(value: number) =>
+            `$${value.toLocaleString()} (${Math.round((value / total) * 100)}%)`
+          }
+        />
+        <Legend
+          layout="horizontal"
+          wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+        />
       </PieChart>
     </ResponsiveContainer>
   )

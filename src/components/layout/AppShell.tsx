@@ -13,8 +13,21 @@ const NAV: NavItem[] = [
   { to: '/cuentas', label: 'Cuentas', icon: '🏦' },
   { to: '/tarjetas', label: 'Tarjetas', icon: '💳' },
   { to: '/transacciones', label: 'Transacciones', icon: '💸' },
+  { to: '/importar', label: 'Importar', icon: '📥' },
+  { to: '/correo', label: 'Sincronizar correo', icon: '📧' },
+  { to: '/sms', label: 'Sincronizar SMS', icon: '📱' },
+  { to: '/conectar', label: 'Conexión automática', icon: '🔗' },
   { to: '/categorias', label: 'Categorías', icon: '🏷️' },
   { to: '/rendimientos', label: 'Rendimientos', icon: '📈' },
+  { to: '/reportes', label: 'Reportes', icon: '📑' },
+]
+
+// Accesos principales para la barra inferior en móvil.
+const MOBILE_NAV: NavItem[] = [
+  { to: '/', label: 'Resumen', icon: '📊' },
+  { to: '/cuentas', label: 'Cuentas', icon: '🏦' },
+  { to: '/transacciones', label: 'Movs.', icon: '💸' },
+  { to: '/importar', label: 'Importar', icon: '📥' },
   { to: '/reportes', label: 'Reportes', icon: '📑' },
 ]
 
@@ -68,7 +81,7 @@ export function AppShell() {
       {/* Main */}
       <div className="flex flex-1 flex-col">
         {/* Topbar */}
-        <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6">
+        <header className="safe-top flex items-center justify-between border-b border-slate-200 bg-white px-6 py-3">
           <div className="flex items-center gap-2 md:hidden">
             <span className="text-xl">💰</span>
             <span className="font-semibold text-slate-800">FinZen</span>
@@ -88,10 +101,30 @@ export function AppShell() {
           </div>
         </header>
 
-        <main className="flex-1 p-6">
+        {/* pb extra en móvil para no quedar debajo de la barra inferior */}
+        <main className="flex-1 p-4 pb-24 md:p-6 md:pb-6">
           <Outlet />
         </main>
       </div>
+
+      {/* Barra de navegación inferior (solo móvil) */}
+      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-slate-200 bg-white md:hidden">
+        {MOBILE_NAV.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.to === '/'}
+            className={({ isActive }) =>
+              `flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition-colors ${
+                isActive ? 'text-brand-700' : 'text-slate-500'
+              }`
+            }
+          >
+            <span className="text-lg">{item.icon}</span>
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { TransactionRow, TxKind } from '@/types/db'
+import type { TransactionRow, TxKind, TransactionDeletionRow } from '@/types/db'
 
 interface TransactionFilter {
   kind?: TxKind
@@ -111,21 +111,45 @@ export function useCreateTransaction() {
   })
 }
 
+// Elimina una transacción registrando el motivo en el historial de auditoría.
+// El balance (vista account_balances) se revierte solo al borrar la fila.
 export function useDeleteTransaction() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id }: { id: string; userId: string }) => {
-      const { error } = await supabase
-        .from('transactions')
-        .delete()
-        .eq('id', id)
+    mutationFn: async ({ id, reason }: { id: string; userId: string; reason: string }) => {
+      const { error } = await supabase.rpc('delete_transaction_with_reason', {
+        p_tx_id: id,
+        p_reason: reason,
+      })
       if (error) throw error
     },
     onSuccess: (_data, input) => {
-      queryClient.invalidateQueries({
-        queryKey: ['transactions', input.userId],
-      })
+      queryClient.invalidateQueries({ queryKey: ['transactions', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['account_balances', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['card_usage', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['transaction_deletions', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['transactions_summary', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['monthly_totals', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['category_totals', input.userId] })
     },
+  })
+}
+
+// Historial de transacciones eliminadas (con motivo).
+export function useTransactionDeletions(userId?: string) {
+  return useQuery({
+    queryKey: ['transaction_deletions', userId],
+    queryFn: async () => {
+      if (!userId) return []
+      const { data, error } = await supabase
+        .from('transaction_deletions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('deleted_at', { ascending: false })
+      if (error) throw error
+      return (data || []) as TransactionDeletionRow[]
+    },
+    enabled: !!userId,
   })
 }
 

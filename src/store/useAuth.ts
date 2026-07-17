@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { initNativeAuthListener } from '@/lib/nativeAuth'
 import type { ProfileRow } from '@/types/db'
 
 export type Profile = ProfileRow
@@ -38,6 +39,9 @@ export const useAuth = create<AuthState>((set, get) => ({
   init: async () => {
     if (get().initialized) return
     set({ initialized: true })
+
+    // App nativa: capturar el retorno del OAuth por deep link (no-op en web).
+    initNativeAuthListener()
 
     const {
       data: { session },

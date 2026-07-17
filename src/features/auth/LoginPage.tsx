@@ -1,16 +1,11 @@
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { supabase } from '@/lib/supabase'
+import { signInWithGoogle } from '@/lib/nativeAuth'
 
 export function LoginPage() {
-  // Login con Google. Requiere haber habilitado el proveedor Google en Supabase
-  // (Authentication -> Providers). Se ajusta en la Fase 1.
-  async function signInWithGoogle() {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin },
-    })
-  }
+  // Login con Google. En web usa redirect normal; en app nativa (Capacitor)
+  // usa navegador del sistema + deep link. Requiere el proveedor Google
+  // habilitado en Supabase (Authentication -> Providers).
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
