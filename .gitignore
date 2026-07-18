@@ -29,3 +29,6 @@ dist-ssr
 # Supabase
 supabase/.temp
 supabase/.branches
+
+# Claude Code (config local de la máquina)
+.claude/

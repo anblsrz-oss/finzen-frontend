@@ -6,6 +6,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
+import { useSettings, resolveIsDark } from '@/store/useSettings'
 
 interface CategoryData {
   name: string
@@ -19,9 +20,12 @@ interface CategoryPieChartProps {
 }
 
 export function CategoryPieChart({ data }: CategoryPieChartProps) {
+  const theme = useSettings((s) => s.theme)
+  const dark = resolveIsDark(theme)
+
   if (data.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center text-slate-500">
+      <div className="flex h-64 items-center justify-center text-slate-500 dark:text-slate-400">
         Sin gastos en este período
       </div>
     )
@@ -60,10 +64,20 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
           formatter={(value: number) =>
             `$${value.toLocaleString()} (${Math.round((value / total) * 100)}%)`
           }
+          contentStyle={{
+            backgroundColor: dark ? '#1e293b' : '#ffffff',
+            border: `1px solid ${dark ? '#334155' : '#e2e8f0'}`,
+            borderRadius: 8,
+          }}
+          itemStyle={{ color: dark ? '#f1f5f9' : undefined }}
         />
         <Legend
           layout="horizontal"
-          wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+          wrapperStyle={{
+            fontSize: 12,
+            paddingTop: 8,
+            color: dark ? '#94a3b8' : undefined,
+          }}
         />
       </PieChart>
     </ResponsiveContainer>

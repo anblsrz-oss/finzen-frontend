@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { TransactionRow, TxKind, TransactionDeletionRow } from '@/types/db'
+import type { TransactionRow, TxKind, TxSource, TransactionDeletionRow } from '@/types/db'
 
 interface TransactionFilter {
   kind?: TxKind
@@ -25,6 +25,8 @@ export function useTransactions(
         .from('transactions')
         .select('*')
         .eq('user_id', userId)
+        // Los gastos familiares viven en la sección Familia, no aquí.
+        .is('family_id', null)
 
       if (filter?.kind) {
         query = query.eq('kind', filter.kind)
@@ -80,6 +82,9 @@ export function useCreateTransaction() {
       cardId?: string
       txDate: string
       notes?: string
+      source?: TxSource
+      externalId?: string
+      familyId?: string
     }) => {
       const txData: Record<string, any> = {
         user_id: input.userId,
@@ -96,6 +101,9 @@ export function useCreateTransaction() {
       if (input.toAccountId) txData.to_account_id = input.toAccountId
       if (input.cardId) txData.card_id = input.cardId
       if (input.notes?.trim()) txData.notes = input.notes
+      if (input.source) txData.source = input.source
+      if (input.externalId) txData.external_id = input.externalId
+      if (input.familyId) txData.family_id = input.familyId
 
       const { data, error } = await supabase
         .from('transactions')
@@ -107,6 +115,14 @@ export function useCreateTransaction() {
     },
     onSuccess: (_data, input) => {
       queryClient.invalidateQueries({ queryKey: ['transactions', input.userId] })
+      if (input.familyId) {
+        queryClient.invalidateQueries({
+          queryKey: ['family_transactions', input.familyId],
+        })
+        queryClient.invalidateQueries({
+          queryKey: ['family_card_usage', input.familyId],
+        })
+      }
     },
   })
 }

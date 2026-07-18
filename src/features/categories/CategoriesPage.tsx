@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useCategories, useCreateCategory, useDeleteCategory } from '@/hooks/useCategories'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -8,6 +9,7 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 
 export function CategoriesPage() {
+  const { t } = useTranslation()
   const { session } = useAuth()
   const userId = session?.user?.id
   const [showForm, setShowForm] = useState(false)
@@ -44,7 +46,7 @@ export function CategoriesPage() {
   }
 
   const handleDelete = (id: string) => {
-    if (confirm('¿Eliminar esta categoría?')) {
+    if (confirm(t('¿Eliminar esta categoría?'))) {
       deleteCategory.mutate({ id, userId: userId! })
     }
   }
@@ -52,30 +54,30 @@ export function CategoriesPage() {
   return (
     <>
       <PageHeader
-        title="Categorías"
-        subtitle="Clasifica tus ingresos y gastos."
+        title={t('Categorías')}
+        subtitle={t('Clasifica tus ingresos y gastos.')}
         actions={
           <Button onClick={() => setShowForm(!showForm)}>
-            {showForm ? 'Cancelar' : '+ Agregar categoría'}
+            {showForm ? t('Cancelar') : t('+ Agregar categoría')}
           </Button>
         }
       />
 
       {showForm && (
-        <Card className="mb-6 bg-slate-50">
+        <Card className="mb-6 bg-slate-50 dark:bg-slate-900">
           <div className="space-y-3">
             <Input
-              label="Nombre"
-              placeholder="Ej: Gasolina"
+              label={t('Nombre')}
+              placeholder={t('Ej: Gasolina')}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
             <div className="grid grid-cols-3 gap-3">
               <Select
-                label="Tipo"
+                label={t('Tipo')}
                 options={[
-                  { value: 'income', label: 'Ingreso' },
-                  { value: 'expense', label: 'Egreso' },
+                  { value: 'income', label: t('Ingreso') },
+                  { value: 'expense', label: t('Egreso') },
                 ]}
                 value={kind}
                 onChange={(e) =>
@@ -83,7 +85,7 @@ export function CategoriesPage() {
                 }
               />
               <Input
-                label="Ícono (emoji)"
+                label={t('Ícono (emoji)')}
                 placeholder="⛽"
                 value={icon}
                 onChange={(e) => setIcon(e.target.value)}
@@ -95,7 +97,7 @@ export function CategoriesPage() {
                   onClick={handleCreate}
                   disabled={createCategory.isPending || !name.trim()}
                 >
-                  Crear
+                  {t('Crear')}
                 </Button>
               </div>
             </div>
@@ -106,8 +108,8 @@ export function CategoriesPage() {
       <div className="space-y-6">
         {userCategories.length > 0 && (
           <div>
-            <h3 className="mb-3 text-sm font-semibold text-slate-700">
-              Mis categorías
+            <h3 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">
+              {t('Mis categorías')}
             </h3>
             <div className="grid gap-2">
               {userCategories.map((cat) => (
@@ -115,9 +117,9 @@ export function CategoriesPage() {
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{cat.icon || '•'}</span>
                     <div>
-                      <p className="font-medium text-slate-800">{cat.name}</p>
-                      <p className="text-xs text-slate-500">
-                        {cat.kind === 'income' ? 'Ingreso' : 'Egreso'}
+                      <p className="font-medium text-slate-800 dark:text-slate-100">{cat.name}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {cat.kind === 'income' ? t('Ingreso') : t('Egreso')}
                       </p>
                     </div>
                   </div>
@@ -127,7 +129,7 @@ export function CategoriesPage() {
                     onClick={() => handleDelete(cat.id)}
                     disabled={deleteCategory.isPending}
                   >
-                    Eliminar
+                    {t('Eliminar')}
                   </Button>
                 </Card>
               ))}
@@ -137,16 +139,16 @@ export function CategoriesPage() {
 
         {systemCategories.length > 0 && (
           <div>
-            <h3 className="mb-3 text-sm font-semibold text-slate-700">
-              Categorías del sistema
+            <h3 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200">
+              {t('Categorías del sistema')}
             </h3>
             <div className="grid gap-2">
               {systemCategories.map((cat) => (
                 <Card key={cat.id} className="flex items-center gap-3">
                   <span className="text-2xl">{cat.icon || '•'}</span>
                   <div className="flex-1">
-                    <p className="font-medium text-slate-800">{cat.name}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="font-medium text-slate-800 dark:text-slate-100">{cat.name}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       {cat.kind === 'income' ? 'Ingreso' : 'Egreso'}
                     </p>
                   </div>
@@ -158,7 +160,7 @@ export function CategoriesPage() {
 
         {allCategories.length === 0 && (
           <Card className="border-dashed text-center">
-            <p className="text-sm text-slate-500">Sin categorías.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{t('Sin categorías.')}</p>
           </Card>
         )}
       </div>

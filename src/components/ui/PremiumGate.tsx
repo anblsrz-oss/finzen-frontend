@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 
 interface PremiumGateProps {
@@ -16,9 +17,12 @@ export function PremiumGate({
   count,
   limit,
   children,
-  lockedTooltip = 'Plan gratis: máximo 2. Actualiza a Premium para más.',
+  lockedTooltip,
 }: PremiumGateProps) {
+  const { t } = useTranslation()
   const { profile } = useAuth()
+  const tooltip =
+    lockedTooltip ?? t('Plan gratis: máximo 2. Actualiza a Premium para más.')
 
   const isLocked = !profile?.is_premium && count >= limit
 
@@ -27,7 +31,7 @@ export function PremiumGate({
   }
 
   return (
-    <div title={lockedTooltip} className="inline-block cursor-not-allowed opacity-50">
+    <div title={tooltip} className="inline-block cursor-not-allowed opacity-50">
       {children}
     </div>
   )

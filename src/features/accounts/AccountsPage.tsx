@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -11,6 +12,7 @@ import { AccountForm } from './AccountForm'
 import { formatMoney } from '@/lib/format'
 
 export function AccountsPage() {
+  const { t } = useTranslation()
   const { session, profile } = useAuth()
   const userId = session?.user?.id
   const [showForm, setShowForm] = useState(false)
@@ -45,7 +47,7 @@ export function AccountsPage() {
   }
 
   const handleDelete = (id: string) => {
-    if (confirm('¿Eliminar esta cuenta?')) {
+    if (confirm(t('¿Eliminar esta cuenta?'))) {
       deleteAccount.mutate({ id, userId: userId! })
     }
   }
@@ -53,12 +55,12 @@ export function AccountsPage() {
   return (
     <>
       <PageHeader
-        title="Cuentas"
-        subtitle="Tus cuentas y bancos, con saldo y rendimientos."
+        title={t('Cuentas')}
+        subtitle={t('Tus cuentas y bancos, con saldo y rendimientos.')}
         actions={
           <PremiumGate count={accounts.length} limit={2}>
             <Button onClick={() => setShowForm(!showForm)}>
-              {showForm ? 'Cancelar' : '+ Agregar cuenta'}
+              {showForm ? t('Cancelar') : t('+ Agregar cuenta')}
             </Button>
           </PremiumGate>
         }
@@ -68,8 +70,8 @@ export function AccountsPage() {
 
       {accounts.length === 0 ? (
         <Card className="border-dashed text-center">
-          <p className="text-sm text-slate-500">
-            Sin cuentas. Crea una para empezar.
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {t('Sin cuentas. Crea una para empezar.')}
           </p>
         </Card>
       ) : (
@@ -79,18 +81,18 @@ export function AccountsPage() {
             return (
               <Card key={acc.id} className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-slate-800">{acc.name}</h3>
-                  <p className="text-xs text-slate-500">
-                    {acc.bank_name || 'Sin banco'} • {acc.type} • {acc.currency}
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-100">{acc.name}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {acc.bank_name || t('Sin banco')} • {acc.type} • {acc.currency}
                   </p>
                   {acc.has_yield && (
                     <p className="mt-1 text-xs text-green-600">
-                      📈 Rendimiento: {acc.yield_rate}% mensual
+                      📈 {t('Rendimiento:')} {acc.yield_rate}% {t('mensual')}
                     </p>
                   )}
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-semibold text-slate-800">
+                  <p className="text-lg font-semibold text-slate-800 dark:text-slate-100">
                     {formatMoney(balance, acc.currency)}
                   </p>
                   <div className="mt-3 flex gap-2">
@@ -98,9 +100,9 @@ export function AccountsPage() {
                       variant="ghost"
                       size="sm"
                       disabled
-                      title="Se implementa en Fase 3"
+                      title={t('Se implementa en Fase 3')}
                     >
-                      Editar
+                      {t('Editar')}
                     </Button>
                     <Button
                       variant="danger"
@@ -108,7 +110,7 @@ export function AccountsPage() {
                       onClick={() => handleDelete(acc.id)}
                       disabled={deleteAccount.isPending}
                     >
-                      Eliminar
+                      {t('Eliminar')}
                     </Button>
                   </div>
                 </div>
@@ -119,9 +121,9 @@ export function AccountsPage() {
       )}
 
       {!profile?.is_premium && accounts.length >= 2 && (
-        <Card className="mt-4 border-amber-200 bg-amber-50">
-          <p className="text-sm text-amber-800">
-            Plan gratis: máximo 2 cuentas. Actualiza a Premium para agregar más.
+        <Card className="mt-4 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            {t('Plan gratis: máximo 2 cuentas. Actualiza a Premium para agregar más.')}
           </p>
         </Card>
       )}

@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useCreateAccount } from '@/hooks/useAccounts'
 import { Button } from '@/components/ui/Button'
@@ -26,6 +27,7 @@ interface AccountFormProps {
 }
 
 export function AccountForm({ onSuccess }: AccountFormProps) {
+  const { t } = useTranslation()
   const { session } = useAuth()
   const createAccount = useCreateAccount()
 
@@ -44,7 +46,7 @@ export function AccountForm({ onSuccess }: AccountFormProps) {
 
   async function onSubmit(data: FormData) {
     if (!session?.user?.id) {
-      alert('No hay sesión activa')
+      alert(t('No hay sesión activa'))
       return
     }
     createAccount.mutate(
@@ -66,40 +68,40 @@ export function AccountForm({ onSuccess }: AccountFormProps) {
   }
 
   return (
-    <Card className="mb-6 bg-slate-50">
+    <Card className="mb-6 bg-slate-50 dark:bg-slate-900">
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <Input
-            label="Nombre de la cuenta"
-            placeholder="Mi cuenta principal"
+            label={t('Nombre de la cuenta')}
+            placeholder={t('Mi cuenta principal')}
             {...form.register('name')}
             error={form.formState.errors.name?.message}
           />
           <Input
-            label="Banco (opcional)"
-            placeholder="Banco X"
+            label={t('Banco (opcional)')}
+            placeholder={t('Banco X')}
             {...form.register('bank_name')}
           />
         </div>
 
         <div className="grid grid-cols-3 gap-4">
           <Select
-            label="Tipo"
+            label={t('Tipo')}
             options={[
-              { value: 'checking', label: 'Corriente' },
-              { value: 'savings', label: 'Ahorro' },
-              { value: 'investment', label: 'Inversión' },
-              { value: 'cash', label: 'Efectivo' },
+              { value: 'checking', label: t('Corriente') },
+              { value: 'savings', label: t('Ahorro') },
+              { value: 'investment', label: t('Inversión') },
+              { value: 'cash', label: t('Efectivo') },
             ]}
             {...form.register('type')}
           />
           <Select
-            label="Moneda"
+            label={t('Moneda')}
             options={Array.from(CURRENCIES).map((c) => ({ value: c, label: c }))}
             {...form.register('currency')}
           />
           <Input
-            label="Saldo inicial"
+            label={t('Saldo inicial')}
             type="number"
             placeholder="0"
             step="0.01"
@@ -115,13 +117,13 @@ export function AccountForm({ onSuccess }: AccountFormProps) {
               {...form.register('has_yield')}
               className="cursor-pointer"
             />
-            <span className="text-sm font-medium text-slate-700">
-              Esta cuenta genera rendimientos
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+              {t('Esta cuenta genera rendimientos')}
             </span>
           </label>
           {form.watch('has_yield') && (
             <Input
-              label="Rendimiento mensual (%)"
+              label={t('Rendimiento mensual (%)')}
               type="number"
               placeholder="0.833"
               step="0.001"
@@ -136,7 +138,7 @@ export function AccountForm({ onSuccess }: AccountFormProps) {
             type="submit"
             disabled={createAccount.isPending}
           >
-            {createAccount.isPending ? 'Guardando…' : 'Crear cuenta'}
+            {createAccount.isPending ? t('Guardando…') : t('Crear cuenta')}
           </Button>
         </div>
       </form>

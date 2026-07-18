@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import {
   useTransactionsSummary,
@@ -11,6 +12,7 @@ import { CategoryPieChart } from '@/components/charts/CategoryPieChart'
 import { formatMoney } from '@/lib/format'
 
 export function DashboardPage() {
+  const { t } = useTranslation()
   const { session } = useAuth()
   const userId = session?.user?.id
 
@@ -37,22 +39,22 @@ export function DashboardPage() {
   return (
     <>
       <PageHeader
-        title="Resumen"
-        subtitle="Vista general de tus ingresos, egresos y balance."
+        title={t('Resumen')}
+        subtitle={t('Vista general de tus ingresos, egresos y balance.')}
       />
 
       {/* Tarjetas de resumen */}
       {summary && (
         <div className="mb-6 grid gap-3 sm:grid-cols-3">
           <Card className="bg-gradient-to-br from-green-50 to-emerald-50">
-            <p className="text-xs text-slate-600">Total Ingresos</p>
+            <p className="text-xs text-slate-600 dark:text-slate-300">{t('Total Ingresos')}</p>
             <p className="text-2xl font-semibold text-green-600">
               {formatMoney(summary.totalIncome, 'MXN')}
             </p>
           </Card>
           <Card className="bg-gradient-to-br from-red-50 to-rose-50">
-            <p className="text-xs text-slate-600">Total Egresos</p>
-            <p className="text-2xl font-semibold text-red-600">
+            <p className="text-xs text-slate-600 dark:text-slate-300">{t('Total Egresos')}</p>
+            <p className="text-2xl font-semibold text-red-600 dark:text-red-400">
               {formatMoney(summary.totalExpense, 'MXN')}
             </p>
           </Card>
@@ -63,7 +65,7 @@ export function DashboardPage() {
                 : 'from-orange-50 to-yellow-50'
             }`}
           >
-            <p className="text-xs text-slate-600">Balance</p>
+            <p className="text-xs text-slate-600 dark:text-slate-300">{t('Balance')}</p>
             <p
               className={`text-2xl font-semibold ${
                 summary.balance >= 0 ? 'text-blue-600' : 'text-orange-600'
@@ -79,8 +81,8 @@ export function DashboardPage() {
       <div className="space-y-6">
         {monthly.length > 0 && (
           <Card>
-            <h3 className="mb-4 font-semibold text-slate-800">
-              Ingresos vs Egresos
+            <h3 className="mb-4 font-semibold text-slate-800 dark:text-slate-100">
+              {t('Ingresos vs Egresos')}
             </h3>
             <IncomeExpenseChart data={monthly} />
           </Card>
@@ -88,8 +90,8 @@ export function DashboardPage() {
 
         {categories.length > 0 && (
           <Card>
-            <h3 className="mb-4 font-semibold text-slate-800">
-              Gastos por Categoría
+            <h3 className="mb-4 font-semibold text-slate-800 dark:text-slate-100">
+              {t('Gastos por Categoría')}
             </h3>
             <CategoryPieChart data={categories} />
           </Card>
@@ -97,8 +99,8 @@ export function DashboardPage() {
 
         {!monthly.length && !categories.length && (
           <Card className="border-dashed text-center">
-            <p className="text-sm text-slate-500">
-              Sin transacciones este mes.
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {t('Sin transacciones este mes.')}
             </p>
           </Card>
         )}

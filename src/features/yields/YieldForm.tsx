@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useCreateOrUpdateYield, useDeleteYield } from '@/hooks/useYields'
+import { activeLocale } from '@/i18n'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
@@ -25,6 +27,7 @@ export function YieldForm({
   currentRecord,
   onDelete,
 }: YieldFormProps) {
+  const { t } = useTranslation()
   const { session } = useAuth()
   const createOrUpdate = useCreateOrUpdateYield()
   const deleteYield = useDeleteYield()
@@ -44,7 +47,7 @@ export function YieldForm({
     const monthStr = d.toISOString().split('T')[0].slice(0, 7) + '-01'
     months.push({
       value: monthStr,
-      label: new Date(monthStr).toLocaleDateString('es-MX', {
+      label: new Date(monthStr).toLocaleDateString(activeLocale(), {
         year: 'numeric',
         month: 'long',
       }),
@@ -73,7 +76,7 @@ export function YieldForm({
 
   const handleDelete = () => {
     if (!session?.user?.id || !currentRecord) return
-    if (confirm('¿Eliminar este registro?')) {
+    if (confirm(t('¿Eliminar este registro?'))) {
       deleteYield.mutate(
         { id: currentRecord.id, userId: session.user.id },
         {
@@ -87,20 +90,21 @@ export function YieldForm({
   }
 
   return (
-    <Card className="border-blue-200 bg-blue-50">
-      <p className="mb-3 text-xs font-semibold text-slate-700">
-        Registra el crecimiento real {currentRecord ? '(Editar)' : 'de este mes'}
+    <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+      <p className="mb-3 text-xs font-semibold text-slate-700 dark:text-slate-200">
+        {t('Registra el crecimiento real')}{' '}
+        {currentRecord ? t('(Editar)') : t('de este mes')}
       </p>
       <div className="space-y-3">
         <div className="flex gap-3">
           <div className="flex-1">
-            <label className="mb-1 block text-xs font-medium text-slate-700">
-              Mes
+            <label className="mb-1 block text-xs font-medium text-slate-700 dark:text-slate-200">
+              {t('Mes')}
             </label>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm"
             >
               {months.map((m) => (
                 <option key={m.value} value={m.value}>
@@ -110,7 +114,7 @@ export function YieldForm({
             </select>
           </div>
           <Input
-            label="Crecimiento real ($)"
+            label={t('Crecimiento real ($)')}
             type="number"
             step="0.01"
             placeholder={formatMoney(expectedGrowth, account.currency)}
@@ -121,11 +125,11 @@ export function YieldForm({
         </div>
 
         {actualGrowth && (
-          <div className="text-sm text-slate-600">
+          <div className="text-sm text-slate-600 dark:text-slate-300">
             <p
-              className={`font-semibold ${difference >= 0 ? 'text-green-600' : 'text-red-600'}`}
+              className={`font-semibold ${difference >= 0 ? 'text-green-600' : 'text-red-600 dark:text-red-400'}`}
             >
-              {difference >= 0 ? '+' : ''}{formatMoney(difference, account.currency)} ({percentDiff}% vs esperado)
+              {difference >= 0 ? '+' : ''}{formatMoney(difference, account.currency)} ({percentDiff}% {t('vs esperado')})
             </p>
           </div>
         )}
@@ -136,7 +140,7 @@ export function YieldForm({
             disabled={createOrUpdate.isPending || !actualGrowth.trim()}
             className="flex-1"
           >
-            {createOrUpdate.isPending ? 'Guardando…' : currentRecord ? 'Actualizar' : 'Verificar'}
+            {createOrUpdate.isPending ? t('Guardando…') : currentRecord ? t('Actualizar') : t('Verificar')}
           </Button>
           {currentRecord && (
             <Button
@@ -144,7 +148,7 @@ export function YieldForm({
               onClick={handleDelete}
               disabled={deleteYield.isPending}
             >
-              Eliminar
+              {t('Eliminar')}
             </Button>
           )}
         </div>

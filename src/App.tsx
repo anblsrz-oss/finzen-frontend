@@ -9,6 +9,9 @@ import { AccountsPage } from '@/features/accounts/AccountsPage'
 import { CardsPage } from '@/features/cards/CardsPage'
 import { TransactionsPage } from '@/features/transactions/TransactionsPage'
 import { ImportPage } from '@/features/import/ImportPage'
+import { ReceiptPage } from '@/features/receipts/ReceiptPage'
+import { FamilyPage } from '@/features/family/FamilyPage'
+import { SettingsPage } from '@/features/settings/SettingsPage'
 import { EmailSyncPage } from '@/features/email/EmailSyncPage'
 import { SmsSyncPage } from '@/features/sms/SmsSyncPage'
 import { ConnectBankPage } from '@/features/connect/ConnectBankPage'
@@ -39,6 +42,9 @@ export default function App() {
         <Route path="/tarjetas" element={<CardsPage />} />
         <Route path="/transacciones" element={<TransactionsPage />} />
         <Route path="/importar" element={<ImportPage />} />
+        <Route path="/recibos" element={<ReceiptPage />} />
+        <Route path="/familia" element={<FamilyPage />} />
+        <Route path="/configuracion" element={<SettingsPage />} />
         <Route path="/correo" element={<EmailSyncPage />} />
         <Route path="/sms" element={<SmsSyncPage />} />
         <Route path="/conectar" element={<ConnectBankPage />} />

@@ -5,7 +5,7 @@ export type AccountType = 'checking' | 'savings' | 'investment' | 'cash'
 export type CardType = 'credit' | 'debit'
 export type TxKind = 'income' | 'expense' | 'transfer'
 export type CategoryKind = 'income' | 'expense'
-export type TxSource = 'manual' | 'import' | 'email' | 'sms' | 'aggregator'
+export type TxSource = 'manual' | 'import' | 'email' | 'sms' | 'aggregator' | 'receipt'
 export type IngestChannel = 'csv' | 'pdf' | 'email' | 'sms'
 export type ImportStatus = 'parsing' | 'staged' | 'confirmed' | 'failed'
 export type StagingStatus = 'pending' | 'confirmed' | 'discarded' | 'duplicate'
@@ -75,7 +75,65 @@ export interface TransactionRow {
   external_id: string | null
   pending: boolean
   raw_ref: string | null
+  family_id: string | null
   created_at: string
+}
+
+// Plan familiar
+export type FamilyMemberStatus = 'pending' | 'accepted' | 'rejected'
+
+export interface FamilyRow {
+  id: string
+  owner_id: string
+  name: string
+  created_at: string
+}
+
+export interface FamilyMemberRow {
+  id: string
+  family_id: string
+  user_id: string | null
+  invited_email: string
+  status: FamilyMemberStatus
+  invited_at: string
+  responded_at: string | null
+}
+
+export interface FamilySharedCardRow {
+  id: string
+  family_id: string
+  card_id: string
+  created_at: string
+}
+
+// Vista family_cards: lo que un miembro puede ver de una tarjeta compartida.
+// A propósito NO tiene credit_limit/cut_day/payment_day.
+export interface FamilyCardRow {
+  family_id: string
+  card_id: string
+  name: string
+  brand: string | null
+  type: CardType
+  currency: string
+  owner_id: string
+}
+
+export interface FamilyCardUsageRow {
+  family_id: string
+  card_id: string
+  name: string
+  currency: string
+  family_spent: number
+}
+
+export interface FamilyMemberProfileRow {
+  family_id: string
+  member_id: string
+  user_id: string | null
+  invited_email: string
+  status: FamilyMemberStatus
+  full_name: string | null
+  avatar_url: string | null
 }
 
 export interface InstallmentPlanRow {

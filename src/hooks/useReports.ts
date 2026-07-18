@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { activeLocale } from '@/i18n'
 import type { TransactionRow } from '@/types/db'
 
 export interface ReportFilters {
@@ -19,6 +20,8 @@ export function useTransactionsSummary(userId?: string, filters?: ReportFilters)
         .from('transactions')
         .select('*')
         .eq('user_id', userId)
+        // Los gastos familiares no forman parte de las finanzas personales.
+        .is('family_id', null)
 
       if (filters?.startDate) {
         query = query.gte('tx_date', filters.startDate)
@@ -70,6 +73,7 @@ export function useMonthlyTotals(userId?: string, filters?: ReportFilters) {
         .from('transactions')
         .select('*')
         .eq('user_id', userId)
+        .is('family_id', null)
 
       if (filters?.startDate) {
         query = query.gte('tx_date', filters.startDate)
@@ -102,7 +106,7 @@ export function useMonthlyTotals(userId?: string, filters?: ReportFilters) {
       return Object.entries(byMonth)
         .map(([month, data]) => ({
           month,
-          monthLabel: new Date(month + '-01').toLocaleDateString('es-MX', {
+          monthLabel: new Date(month + '-01').toLocaleDateString(activeLocale(), {
             month: 'short',
             year: 'numeric',
           }),
@@ -125,6 +129,7 @@ export function useCategoryTotals(userId?: string, filters?: ReportFilters) {
         .select('*, categories(name, icon)')
         .eq('user_id', userId)
         .eq('kind', 'expense')
+        .is('family_id', null)
 
       if (filters?.startDate) {
         query = query.gte('tx_date', filters.startDate)

@@ -12,8 +12,8 @@ interface PlaceholderProps {
 export function Placeholder({ phase, description }: PlaceholderProps) {
   return (
     <Card className="border-dashed">
-      <p className="text-sm font-medium text-brand-700">{phase}</p>
-      <p className="mt-1 text-sm text-slate-500">{description}</p>
+      <p className="text-sm font-medium text-brand-700 dark:text-brand-500">{phase}</p>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>
     </Card>
   )
 }

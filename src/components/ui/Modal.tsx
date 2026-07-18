@@ -16,15 +16,16 @@ export function Modal({ open, title, children, onClose }: ModalProps) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl"
+        className="w-full max-w-md rounded-xl bg-white dark:bg-slate-800 p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-800">{title}</h3>
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">{title}</h3>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600"
+            className="text-slate-400 dark:text-slate-500 hover:text-slate-600"
             aria-label="Cerrar"
+            title="Cerrar"
           >
             ✕
           </button>

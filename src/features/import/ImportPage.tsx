@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import Papa from 'papaparse'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useAccounts } from '@/hooks/useAccounts'
 import { useCategories } from '@/hooks/useCategories'
@@ -21,6 +22,7 @@ import { formatMoney, formatDate } from '@/lib/format'
 const NONE = ''
 
 export function ImportPage() {
+  const { t } = useTranslation()
   const { session } = useAuth()
   const userId = session?.user?.id
 
@@ -69,9 +71,9 @@ export function ImportPage() {
   const dataRows = hasHeader ? rawRows.slice(1) : rawRows
 
   const columnOptions = useMemo(() => {
-    const opts = [{ value: NONE, label: '— sin asignar —' }]
+    const opts = [{ value: NONE, label: t('— sin asignar —') }]
     for (let i = 0; i < columnCount; i++) {
-      const label = hasHeader && headerRow[i] ? headerRow[i] : `Columna ${i + 1}`
+      const label = hasHeader && headerRow[i] ? headerRow[i] : t('Columna {{n}}', { n: i + 1 })
       opts.push({ value: String(i), label: `${label}` })
     }
     return opts
@@ -152,7 +154,11 @@ export function ImportPage() {
       rows,
     })
     setResult(
-      `Importadas ${res.inserted} de ${res.total} (${res.duplicates} duplicadas omitidas).`,
+      t('Importadas {{inserted}} de {{total}} ({{duplicates}} duplicadas omitidas).', {
+        inserted: res.inserted,
+        total: res.total,
+        duplicates: res.duplicates,
+      }),
     )
     setRawRows([])
     setFileName('')
@@ -171,30 +177,30 @@ export function ImportPage() {
   return (
     <>
       <PageHeader
-        title="Importar movimientos"
-        subtitle="Sube el estado de cuenta (CSV) de tu banco y conviértelo en transacciones. Tus datos no salen a terceros."
+        title={t('Importar movimientos')}
+        subtitle={t('Sube el estado de cuenta (CSV) de tu banco y conviértelo en transacciones. Tus datos no salen a terceros.')}
       />
 
       {accounts.length === 0 ? (
         <Card className="border-dashed text-center">
-          <p className="text-sm text-slate-500">
-            Primero crea una cuenta para poder importar movimientos.
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {t('Primero crea una cuenta para poder importar movimientos.')}
           </p>
         </Card>
       ) : (
         <div className="grid gap-4">
           {/* Paso 1: cuenta + archivo */}
           <Card className="grid gap-4">
-            <h3 className="text-sm font-semibold text-slate-700">
-              1. Cuenta destino y archivo
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              {t('1. Cuenta destino y archivo')}
             </h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <Select
-                label="Cuenta destino"
+                label={t('Cuenta destino')}
                 value={accountId}
                 onChange={(e) => setAccountId(e.target.value)}
                 options={[
-                  { value: '', label: 'Selecciona una cuenta' },
+                  { value: '', label: t('Selecciona una cuenta') },
                   ...accounts.map((a) => ({
                     value: a.id,
                     label: `${a.name} (${a.currency})`,
@@ -203,11 +209,11 @@ export function ImportPage() {
               />
               {rules.length > 0 && (
                 <Select
-                  label="Usar mapeo guardado"
+                  label={t('Usar mapeo guardado')}
                   value={bankName}
                   onChange={(e) => applyRule(e.target.value)}
                   options={[
-                    { value: '', label: 'Nuevo mapeo…' },
+                    { value: '', label: t('Nuevo mapeo…') },
                     ...rules.map((r) => ({
                       value: r.bank_name,
                       label: r.bank_name,
@@ -217,14 +223,14 @@ export function ImportPage() {
               )}
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">
-                Archivo CSV
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
+                {t('Archivo CSV')}
               </label>
               <input
                 type="file"
                 accept=".csv,text/csv"
                 onChange={handleFile}
-                className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-600 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-brand-700"
+                className="block w-full text-sm text-slate-600 dark:text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-600 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-brand-700"
               />
             </div>
           </Card>
@@ -232,27 +238,27 @@ export function ImportPage() {
           {/* Paso 2: mapeo de columnas */}
           {rawRows.length > 0 && (
             <Card className="grid gap-4">
-              <h3 className="text-sm font-semibold text-slate-700">
-                2. Mapea las columnas de {fileName}
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                {t('2. Mapea las columnas de {{file}}', { file: fileName })}
               </h3>
-              <label className="flex items-center gap-2 text-sm text-slate-600">
+              <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                 <input
                   type="checkbox"
                   checked={hasHeader}
                   onChange={(e) => setHasHeader(e.target.checked)}
                 />
-                La primera fila son encabezados
+                {t('La primera fila son encabezados')}
               </label>
 
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Select
-                  label="Columna de Fecha"
+                  label={t('Columna de Fecha')}
                   value={dateCol}
                   onChange={(e) => setDateCol(e.target.value)}
                   options={columnOptions}
                 />
                 <Select
-                  label="Formato de fecha"
+                  label={t('Formato de fecha')}
                   value={dateFormat}
                   onChange={(e) => setDateFormat(e.target.value)}
                   options={[
@@ -263,25 +269,25 @@ export function ImportPage() {
                   ]}
                 />
                 <Select
-                  label="Columna de Concepto"
+                  label={t('Columna de Concepto')}
                   value={conceptCol}
                   onChange={(e) => setConceptCol(e.target.value)}
                   options={columnOptions}
                 />
                 <Select
-                  label="Formato de monto"
+                  label={t('Formato de monto')}
                   value={amountMode}
                   onChange={(e) =>
                     setAmountMode(e.target.value as 'single' | 'split')
                   }
                   options={[
-                    { value: 'single', label: 'Una columna con signo (+/-)' },
-                    { value: 'split', label: 'Columnas de cargo y abono' },
+                    { value: 'single', label: t('Una columna con signo (+/-)') },
+                    { value: 'split', label: t('Columnas de cargo y abono') },
                   ]}
                 />
                 {amountMode === 'single' ? (
                   <Select
-                    label="Columna de Monto"
+                    label={t('Columna de Monto')}
                     value={amountCol}
                     onChange={(e) => setAmountCol(e.target.value)}
                     options={columnOptions}
@@ -289,13 +295,13 @@ export function ImportPage() {
                 ) : (
                   <>
                     <Select
-                      label="Columna de Cargo (egreso)"
+                      label={t('Columna de Cargo (egreso)')}
                       value={debitCol}
                       onChange={(e) => setDebitCol(e.target.value)}
                       options={columnOptions}
                     />
                     <Select
-                      label="Columna de Abono (ingreso)"
+                      label={t('Columna de Abono (ingreso)')}
                       value={creditCol}
                       onChange={(e) => setCreditCol(e.target.value)}
                       options={columnOptions}
@@ -303,22 +309,22 @@ export function ImportPage() {
                   </>
                 )}
                 <Select
-                  label="Separador decimal"
+                  label={t('Separador decimal')}
                   value={decimalSeparator}
                   onChange={(e) =>
                     setDecimalSeparator(e.target.value as '.' | ',')
                   }
                   options={[
-                    { value: '.', label: 'Punto (1,234.56)' },
-                    { value: ',', label: 'Coma (1.234,56)' },
+                    { value: '.', label: t('Punto (1,234.56)') },
+                    { value: ',', label: t('Coma (1.234,56)') },
                   ]}
                 />
                 <Select
-                  label="Categoría por defecto (opcional)"
+                  label={t('Categoría por defecto (opcional)')}
                   value={defaultCategoryId}
                   onChange={(e) => setDefaultCategoryId(e.target.value)}
                   options={[
-                    { value: '', label: 'Sin categoría' },
+                    { value: '', label: t('Sin categoría') },
                     ...categories.map((c) => ({
                       value: c.id,
                       label: `${c.icon ?? ''} ${c.name}`.trim(),
@@ -329,10 +335,10 @@ export function ImportPage() {
 
               <div className="flex items-end gap-3">
                 <Input
-                  label="Nombre del banco (para guardar el mapeo)"
+                  label={t('Nombre del banco (para guardar el mapeo)')}
                   value={bankName}
                   onChange={(e) => setBankName(e.target.value)}
-                  placeholder="Ej. BBVA, Nu, Klar…"
+                  placeholder={t('Ej. BBVA, Nu, Klar…')}
                   className="max-w-xs"
                 />
                 <Button
@@ -340,7 +346,7 @@ export function ImportPage() {
                   onClick={handleSaveRule}
                   disabled={!bankName.trim() || !mappingReady || saveRule.isPending}
                 >
-                  Guardar mapeo
+                  {t('Guardar mapeo')}
                 </Button>
               </div>
             </Card>
@@ -350,11 +356,10 @@ export function ImportPage() {
           {parsed && (
             <Card className="grid gap-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-700">
-                  3. Previsualización ({parsed.rows.length} movimientos
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  {t('3. Previsualización ({{count}} movimientos)', { count: parsed.rows.length })}
                   {parsed.errors.length > 0 &&
-                    `, ${parsed.errors.length} con error`}
-                  )
+                    ` ${t('({{n}} con error)', { n: parsed.errors.length })}`}
                 </h3>
                 <Button
                   onClick={handleConfirm}
@@ -363,42 +368,42 @@ export function ImportPage() {
                   }
                 >
                   {confirmImport.isPending
-                    ? 'Importando…'
-                    : `Confirmar e importar (${parsed.rows.length})`}
+                    ? t('Importando…')
+                    : t('Confirmar e importar ({{count}})', { count: parsed.rows.length })}
                 </Button>
               </div>
 
               {!accountId && (
                 <p className="text-xs text-amber-600">
-                  Selecciona la cuenta destino para poder importar.
+                  {t('Selecciona la cuenta destino para poder importar.')}
                 </p>
               )}
 
-              <div className="max-h-96 overflow-auto rounded-lg border border-slate-200">
+              <div className="max-h-96 overflow-auto rounded-lg border border-slate-200 dark:border-slate-700">
                 <table className="w-full text-left text-sm">
-                  <thead className="sticky top-0 bg-slate-50 text-xs text-slate-500">
+                  <thead className="sticky top-0 bg-slate-50 dark:bg-slate-900 text-xs text-slate-500 dark:text-slate-400">
                     <tr>
-                      <th className="px-3 py-2">Fecha</th>
-                      <th className="px-3 py-2">Concepto</th>
-                      <th className="px-3 py-2">Tipo</th>
-                      <th className="px-3 py-2 text-right">Monto</th>
+                      <th className="px-3 py-2">{t('Fecha')}</th>
+                      <th className="px-3 py-2">{t('Concepto')}</th>
+                      <th className="px-3 py-2">{t('Tipo')}</th>
+                      <th className="px-3 py-2 text-right">{t('Monto')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {parsed.rows.slice(0, 200).map((r, i) => (
-                      <tr key={i} className="border-t border-slate-100">
-                        <td className="px-3 py-1.5 text-slate-600">
+                      <tr key={i} className="border-t border-slate-100 dark:border-slate-700">
+                        <td className="px-3 py-1.5 text-slate-600 dark:text-slate-300">
                           {formatDate(r.tx_date)}
                         </td>
-                        <td className="px-3 py-1.5 text-slate-800">
+                        <td className="px-3 py-1.5 text-slate-800 dark:text-slate-100">
                           {r.concept}
                         </td>
                         <td className="px-3 py-1.5">
-                          {r.kind === 'income' ? '📥 Ingreso' : '📤 Egreso'}
+                          {r.kind === 'income' ? t('📥 Ingreso') : t('📤 Egreso')}
                         </td>
                         <td
                           className={`px-3 py-1.5 text-right font-medium ${
-                            r.kind === 'income' ? 'text-green-600' : 'text-slate-800'
+                            r.kind === 'income' ? 'text-green-600' : 'text-slate-800 dark:text-slate-100'
                           }`}
                         >
                           {r.kind === 'income' ? '+' : '-'}
@@ -410,8 +415,8 @@ export function ImportPage() {
                 </table>
               </div>
               {parsed.rows.length > 200 && (
-                <p className="text-xs text-slate-400">
-                  Mostrando 200 de {parsed.rows.length}. Se importarán todos.
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  {t('Mostrando 200 de {{total}}. Se importarán todos.', { total: parsed.rows.length })}
                 </p>
               )}
             </Card>

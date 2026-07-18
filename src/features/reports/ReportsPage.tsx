@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import {
   useTransactionsSummary,
@@ -13,6 +14,7 @@ import { CategoryPieChart } from '@/components/charts/CategoryPieChart'
 import { formatMoney } from '@/lib/format'
 
 export function ReportsPage() {
+  const { t } = useTranslation()
   const { session, profile } = useAuth()
   const userId = session?.user?.id
   const [startDate, setStartDate] = useState(
@@ -39,25 +41,25 @@ export function ReportsPage() {
   return (
     <>
       <PageHeader
-        title="Reportes"
-        subtitle="Gráficas de ingresos y gastos por período, cuenta y tarjeta."
+        title={t('Reportes')}
+        subtitle={t('Gráficas de ingresos y gastos por período, cuenta y tarjeta.')}
       />
 
       {/* Filtros (Premium) */}
       {profile?.is_premium && (
-        <Card className="mb-6 bg-slate-50">
-          <p className="mb-3 text-xs font-semibold text-slate-700">
-            Rango de fechas
+        <Card className="mb-6 bg-slate-50 dark:bg-slate-900">
+          <p className="mb-3 text-xs font-semibold text-slate-700 dark:text-slate-200">
+            {t('Rango de fechas')}
           </p>
           <div className="flex gap-3">
             <Input
-              label="Desde"
+              label={t('Desde')}
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
             />
             <Input
-              label="Hasta"
+              label={t('Hasta')}
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
@@ -70,14 +72,14 @@ export function ReportsPage() {
       {summary && (
         <div className="mb-6 grid gap-3 sm:grid-cols-3">
           <Card className="bg-gradient-to-br from-green-50 to-emerald-50">
-            <p className="text-xs text-slate-600">Total Ingresos</p>
+            <p className="text-xs text-slate-600 dark:text-slate-300">{t('Total Ingresos')}</p>
             <p className="text-2xl font-semibold text-green-600">
               {formatMoney(summary.totalIncome, 'MXN')}
             </p>
           </Card>
           <Card className="bg-gradient-to-br from-red-50 to-rose-50">
-            <p className="text-xs text-slate-600">Total Egresos</p>
-            <p className="text-2xl font-semibold text-red-600">
+            <p className="text-xs text-slate-600 dark:text-slate-300">{t('Total Egresos')}</p>
+            <p className="text-2xl font-semibold text-red-600 dark:text-red-400">
               {formatMoney(summary.totalExpense, 'MXN')}
             </p>
           </Card>
@@ -88,7 +90,7 @@ export function ReportsPage() {
                 : 'from-orange-50 to-yellow-50'
             }`}
           >
-            <p className="text-xs text-slate-600">Balance</p>
+            <p className="text-xs text-slate-600 dark:text-slate-300">{t('Balance')}</p>
             <p
               className={`text-2xl font-semibold ${
                 summary.balance >= 0 ? 'text-blue-600' : 'text-orange-600'
@@ -104,8 +106,8 @@ export function ReportsPage() {
       <div className="space-y-6">
         {monthly.length > 0 && (
           <Card>
-            <h3 className="mb-4 font-semibold text-slate-800">
-              Ingresos vs Egresos
+            <h3 className="mb-4 font-semibold text-slate-800 dark:text-slate-100">
+              {t('Ingresos vs Egresos')}
             </h3>
             <IncomeExpenseChart data={monthly} />
           </Card>
@@ -113,8 +115,8 @@ export function ReportsPage() {
 
         {categories.length > 0 && (
           <Card>
-            <h3 className="mb-4 font-semibold text-slate-800">
-              Gastos por Categoría
+            <h3 className="mb-4 font-semibold text-slate-800 dark:text-slate-100">
+              {t('Gastos por Categoría')}
             </h3>
             <CategoryPieChart data={categories} />
           </Card>
@@ -122,18 +124,17 @@ export function ReportsPage() {
 
         {!monthly.length && !categories.length && (
           <Card className="border-dashed text-center">
-            <p className="text-sm text-slate-500">
-              Sin transacciones en este período.
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {t('Sin transacciones en este período.')}
             </p>
           </Card>
         )}
       </div>
 
       {!profile?.is_premium && (
-        <Card className="mt-6 border-amber-200 bg-amber-50">
-          <p className="text-sm text-amber-800">
-            📊 Premium: filtra por rango de fechas personalizado, cuenta o
-            tarjeta. Actualiza tu plan para más análisis.
+        <Card className="mt-6 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            📊 {t('Premium: filtra por rango de fechas personalizado, cuenta o tarjeta. Actualiza tu plan para más análisis.')}
           </p>
         </Card>
       )}

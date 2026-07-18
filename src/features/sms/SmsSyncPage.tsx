@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useAccounts } from '@/hooks/useAccounts'
 import { useParsingRules, useSaveParsingRule } from '@/hooks/useImports'
@@ -12,6 +13,7 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 
 export function SmsSyncPage() {
+  const { t } = useTranslation()
   const { session } = useAuth()
   const userId = session?.user?.id
   const queryClient = useQueryClient()
@@ -60,13 +62,15 @@ export function SmsSyncPage() {
         accountId || undefined,
       )
       setMsg(
-        `SMS leídos: ${res.found}. Movimientos nuevos (pendientes): ${res.inserted}${
-          res.duplicates ? `, ${res.duplicates} duplicados` : ''
-        }.`,
+        t('SMS leídos: {{found}}. Movimientos nuevos (pendientes): {{inserted}}{{dups}}.', {
+          found: res.found,
+          inserted: res.inserted,
+          dups: res.duplicates ? t(', {{n}} duplicados', { n: res.duplicates }) : '',
+        }),
       )
       queryClient.invalidateQueries({ queryKey: ['transactions', userId] })
     } catch (e) {
-      setMsg(`Error: ${(e as Error).message}`)
+      setMsg(`${t('Error:')} ${(e as Error).message}`)
     } finally {
       setBusy(false)
     }
@@ -75,26 +79,26 @@ export function SmsSyncPage() {
   return (
     <>
       <PageHeader
-        title="Sincronizar SMS"
-        subtitle="Lee las alertas de compra por SMS de tu banco. Disponible solo en la app de Android."
+        title={t('Sincronizar SMS')}
+        subtitle={t('Lee las alertas de compra por SMS de tu banco. Disponible solo en la app de Android.')}
       />
 
       {!available ? (
         <Card className="border-dashed">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
             {platform === 'ios'
-              ? '📵 Apple no permite que las apps lean SMS. En iPhone usa "Sincronizar correo" o "Importar" tu estado de cuenta.'
-              : 'Esta función solo está disponible en la app instalada de Android. En el navegador no se pueden leer SMS.'}
+              ? t('📵 Apple no permite que las apps lean SMS. En iPhone usa "Sincronizar correo" o "Importar" tu estado de cuenta.')
+              : t('Esta función solo está disponible en la app instalada de Android. En el navegador no se pueden leer SMS.')}
           </p>
         </Card>
       ) : (
         <div className="grid gap-4">
           <Card className="grid gap-3">
-            <h3 className="text-sm font-semibold text-slate-700">
-              1. Remitentes de SMS de tu banco
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              {t('1. Remitentes de SMS de tu banco')}
             </h3>
             {rules.length > 0 && (
-              <ul className="text-sm text-slate-600">
+              <ul className="text-sm text-slate-600 dark:text-slate-300">
                 {rules.map((r) => (
                   <li key={r.id}>
                     <strong>{r.bank_name}:</strong>{' '}
@@ -105,19 +109,19 @@ export function SmsSyncPage() {
             )}
             <div className="grid gap-3 sm:grid-cols-3">
               <Input
-                label="Banco"
+                label={t('Banco')}
                 value={bankName}
                 onChange={(e) => setBankName(e.target.value)}
                 placeholder="BBVA"
               />
               <Input
-                label="Remitentes (coma)"
+                label={t('Remitentes (coma)')}
                 value={senders}
                 onChange={(e) => setSenders(e.target.value)}
                 placeholder="BBVA, 33000"
               />
               <Input
-                label="Regex de monto (opcional)"
+                label={t('Regex de monto (opcional)')}
                 value={amountRegex}
                 onChange={(e) => setAmountRegex(e.target.value)}
                 placeholder="por \\$([\\d,]+\\.\\d{2})"
@@ -129,22 +133,22 @@ export function SmsSyncPage() {
                 onClick={handleSaveRule}
                 disabled={!bankName.trim() || !senders.trim() || saveRule.isPending}
               >
-                Guardar remitente
+                {t('Guardar remitente')}
               </Button>
             </div>
           </Card>
 
           <Card className="grid gap-3">
-            <h3 className="text-sm font-semibold text-slate-700">
-              2. Leer SMS
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              {t('2. Leer SMS')}
             </h3>
             {accounts.length > 0 && (
               <Select
-                label="Asignar a la cuenta (opcional)"
+                label={t('Asignar a la cuenta (opcional)')}
                 value={accountId}
                 onChange={(e) => setAccountId(e.target.value)}
                 options={[
-                  { value: '', label: 'Sin cuenta' },
+                  { value: '', label: t('Sin cuenta') },
                   ...accounts.map((a) => ({
                     value: a.id,
                     label: `${a.name} (${a.currency})`,
@@ -154,18 +158,17 @@ export function SmsSyncPage() {
             )}
             <div>
               <Button onClick={handleSync} disabled={busy}>
-                {busy ? 'Leyendo…' : 'Leer SMS y crear pendientes'}
+                {busy ? t('Leyendo…') : t('Leer SMS y crear pendientes')}
               </Button>
             </div>
-            <p className="text-xs text-slate-400">
-              Se pedirá permiso para leer SMS. Los movimientos se crean como
-              pendientes; confírmalos en Transacciones.
+            <p className="text-xs text-slate-400 dark:text-slate-500">
+              {t('Se pedirá permiso para leer SMS. Los movimientos se crean como pendientes; confírmalos en Transacciones.')}
             </p>
           </Card>
 
           {msg && (
-            <Card className="border-brand-200 bg-brand-50">
-              <p className="text-sm font-medium text-brand-700">{msg}</p>
+            <Card className="border-brand-200 bg-brand-50 dark:bg-brand-800/40">
+              <p className="text-sm font-medium text-brand-700 dark:text-brand-500">{msg}</p>
             </Card>
           )}
         </div>

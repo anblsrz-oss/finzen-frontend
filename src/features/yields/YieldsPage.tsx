@@ -1,5 +1,7 @@
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useAccounts, useAccountBalances } from '@/hooks/useAccounts'
+import { activeLocale } from '@/i18n'
 import { useYieldRecords } from '@/hooks/useYields'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
@@ -9,6 +11,7 @@ import { formatMoney } from '@/lib/format'
 import { useState } from 'react'
 
 export function YieldsPage() {
+  const { t } = useTranslation()
   const { session, profile } = useAuth()
   const userId = session?.user?.id
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null)
@@ -28,12 +31,12 @@ export function YieldsPage() {
     return (
       <>
         <PageHeader
-          title="Rendimientos"
-          subtitle="Compara el crecimiento calculado contra el real."
+          title={t('Rendimientos')}
+          subtitle={t('Compara el crecimiento calculado contra el real.')}
         />
-        <Card className="border-amber-200 bg-amber-50">
-          <p className="text-sm text-amber-800">
-            Esta función es solo para Premium. Actualiza tu plan para usarla.
+        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            {t('Esta función es solo para Premium. Actualiza tu plan para usarla.')}
           </p>
         </Card>
       </>
@@ -44,13 +47,12 @@ export function YieldsPage() {
     return (
       <>
         <PageHeader
-          title="Rendimientos"
-          subtitle="Compara el crecimiento calculado contra el real."
+          title={t('Rendimientos')}
+          subtitle={t('Compara el crecimiento calculado contra el real.')}
         />
         <Card className="border-dashed text-center">
-          <p className="text-sm text-slate-500">
-            Sin cuentas con rendimiento. Crea una cuenta con opción de
-            rendimiento en Cuentas.
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {t('Sin cuentas con rendimiento. Crea una cuenta con opción de rendimiento en Cuentas.')}
           </p>
         </Card>
       </>
@@ -60,8 +62,8 @@ export function YieldsPage() {
   return (
     <>
       <PageHeader
-        title="Rendimientos"
-        subtitle="Compara el crecimiento calculado contra el real."
+        title={t('Rendimientos')}
+        subtitle={t('Compara el crecimiento calculado contra el real.')}
       />
 
       <div className="space-y-6">
@@ -84,26 +86,26 @@ export function YieldsPage() {
           return (
             <div key={account.id} className="space-y-3">
               <Card className="bg-gradient-to-r from-green-50 to-emerald-50">
-                <h3 className="font-semibold text-slate-800">{account.name}</h3>
-                <p className="mt-1 text-xs text-slate-600">
-                  📈 Rendimiento: {account.yield_rate}% mensual
+                <h3 className="font-semibold text-slate-800 dark:text-slate-100">{account.name}</h3>
+                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                  📈 {t('Rendimiento:')} {account.yield_rate}% {t('mensual')}
                 </p>
                 <div className="mt-3 grid grid-cols-3 gap-3">
                   <div>
-                    <p className="text-xs text-slate-500">Saldo actual</p>
-                    <p className="text-lg font-semibold text-slate-800">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t('Saldo actual')}</p>
+                    <p className="text-lg font-semibold text-slate-800 dark:text-slate-100">
                       {formatMoney(currentBalance, account.currency)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500">Crecimiento esperado</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t('Crecimiento esperado')}</p>
                     <p className="text-lg font-semibold text-green-600">
                       +{formatMoney(expectedGrowth, account.currency)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500">Crecimiento real</p>
-                    <p className="text-lg font-semibold text-slate-800">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{t('Crecimiento real')}</p>
+                    <p className="text-lg font-semibold text-slate-800 dark:text-slate-100">
                       {thisMonthYield && thisMonthYield.actual_growth !== null
                         ? `+${formatMoney(thisMonthYield.actual_growth, account.currency)}`
                         : '—'}
@@ -115,8 +117,8 @@ export function YieldsPage() {
               {/* Mostrar últimos registros */}
               {accountYields.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-slate-700">
-                    Histórico
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    {t('Histórico')}
                   </p>
                   {accountYields.map((y) => (
                     <div
@@ -128,23 +130,23 @@ export function YieldsPage() {
                         className={`flex items-center justify-between ${
                           y.verified ? 'border-green-200 bg-green-50' : ''
                         } ${
-                          editingAccountId === y.id ? 'border-blue-300 bg-blue-50' : ''
+                          editingAccountId === y.id ? 'border-blue-300 bg-blue-50 dark:bg-blue-900/20' : ''
                         } hover:border-slate-300`}
                       >
                       <div>
-                        <p className="text-sm font-medium text-slate-800">
+                        <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
                           {new Date(y.period_month).toLocaleDateString(
-                            'es-MX',
+                            activeLocale(),
                             {
                               year: 'numeric',
                               month: 'long',
                             },
                           )}
                         </p>
-                        <p className="text-xs text-slate-500">
-                          Esperado:{' '}
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {t('Esperado:')}{' '}
                           {formatMoney(y.expected_growth || 0, account.currency)} |
-                          Real:{' '}
+                          {' '}{t('Real:')}{' '}
                           {y.actual_growth !== null
                             ? formatMoney(y.actual_growth, account.currency)
                             : '—'}
@@ -152,7 +154,7 @@ export function YieldsPage() {
                       </div>
                       {y.verified && (
                         <span className="text-xs font-semibold text-green-600">
-                          ✓ Verificado
+                          ✓ {t('Verificado')}
                         </span>
                       )}
                       </Card>

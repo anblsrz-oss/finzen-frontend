@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useCreateCard } from '@/hooks/useCards'
 import { Button } from '@/components/ui/Button'
@@ -46,6 +47,7 @@ interface CardFormProps {
 }
 
 export function CardForm({ accounts, onSuccess }: CardFormProps) {
+  const { t } = useTranslation()
   const { session } = useAuth()
   const createCard = useCreateCard()
 
@@ -61,7 +63,7 @@ export function CardForm({ accounts, onSuccess }: CardFormProps) {
 
   async function onSubmit(data: FormData) {
     if (!session?.user?.id) {
-      alert('No hay sesión activa')
+      alert(t('No hay sesión activa'))
       return
     }
     createCard.mutate(
@@ -87,33 +89,33 @@ export function CardForm({ accounts, onSuccess }: CardFormProps) {
   }
 
   return (
-    <Card className="mb-6 bg-slate-50">
+    <Card className="mb-6 bg-slate-50 dark:bg-slate-900">
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <Input
-            label="Nombre de la tarjeta"
-            placeholder="Mi Visa"
+            label={t('Nombre de la tarjeta')}
+            placeholder={t('Mi Visa')}
             {...form.register('name')}
             error={form.formState.errors.name?.message}
           />
           <Input
-            label="Marca (opcional)"
-            placeholder="Visa, Mastercard..."
+            label={t('Marca (opcional)')}
+            placeholder={t('Visa, Mastercard...')}
             {...form.register('brand')}
           />
         </div>
 
         <div className="grid grid-cols-3 gap-4">
           <Select
-            label="Tipo"
+            label={t('Tipo')}
             options={[
-              { value: 'credit', label: '💳 Crédito' },
-              { value: 'debit', label: '💰 Débito' },
+              { value: 'credit', label: t('💳 Crédito') },
+              { value: 'debit', label: t('💰 Débito') },
             ]}
             {...form.register('type')}
           />
           <Select
-            label="Moneda"
+            label={t('Moneda')}
             options={Array.from(CURRENCIES).map((c) => ({ value: c, label: c }))}
             {...form.register('currency')}
           />
@@ -121,9 +123,9 @@ export function CardForm({ accounts, onSuccess }: CardFormProps) {
 
         {cardType === 'debit' && (
           <Select
-            label="Cuenta ligada"
+            label={t('Cuenta ligada')}
             options={[
-              { value: '', label: 'Selecciona una cuenta' },
+              { value: '', label: t('Selecciona una cuenta') },
               ...accounts.map((a) => ({ value: a.id, label: a.name })),
             ]}
             {...form.register('account_id')}
@@ -134,7 +136,7 @@ export function CardForm({ accounts, onSuccess }: CardFormProps) {
         {cardType === 'credit' && (
           <div className="grid grid-cols-3 gap-4">
             <Input
-              label="Límite de crédito"
+              label={t('Límite de crédito')}
               type="number"
               placeholder="10000"
               step="0.01"
@@ -142,7 +144,7 @@ export function CardForm({ accounts, onSuccess }: CardFormProps) {
               error={form.formState.errors.credit_limit?.message}
             />
             <Input
-              label="Día de corte"
+              label={t('Día de corte')}
               type="number"
               placeholder="15"
               min="1"
@@ -150,7 +152,7 @@ export function CardForm({ accounts, onSuccess }: CardFormProps) {
               {...form.register('cut_day')}
             />
             <Input
-              label="Día de pago"
+              label={t('Día de pago')}
               type="number"
               placeholder="5"
               min="1"
@@ -165,7 +167,7 @@ export function CardForm({ accounts, onSuccess }: CardFormProps) {
             type="submit"
             disabled={createCard.isPending}
           >
-            {createCard.isPending ? 'Guardando…' : 'Crear tarjeta'}
+            {createCard.isPending ? t('Guardando…') : t('Crear tarjeta')}
           </Button>
         </div>
       </form>

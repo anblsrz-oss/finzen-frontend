@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useAccounts } from '@/hooks/useAccounts'
 import { useParsingRules, useSaveParsingRule } from '@/hooks/useImports'
@@ -14,6 +15,7 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 
 export function EmailSyncPage() {
+  const { t } = useTranslation()
   const { session } = useAuth()
   const userId = session?.user?.id
 
@@ -50,12 +52,14 @@ export function EmailSyncPage() {
         sinceDays: 30,
       })
       setMsg(
-        `Correos encontrados: ${res.found}. Movimientos nuevos (pendientes): ${res.inserted}${
-          res.duplicates ? `, ${res.duplicates} duplicados` : ''
-        }.`,
+        t('Correos encontrados: {{found}}. Movimientos nuevos (pendientes): {{inserted}}{{dups}}.', {
+          found: res.found,
+          inserted: res.inserted,
+          dups: res.duplicates ? t(', {{n}} duplicados', { n: res.duplicates }) : '',
+        }),
       )
     } catch (e) {
-      setMsg(`Error: ${(e as Error).message}`)
+      setMsg(`${t('Error:')} ${(e as Error).message}`)
     }
   }
 
@@ -81,22 +85,22 @@ export function EmailSyncPage() {
   return (
     <>
       <PageHeader
-        title="Sincronizar correo"
-        subtitle="Lee las alertas de tu banco desde tu Gmail y crea movimientos pendientes. Gratis y casi en tiempo real."
+        title={t('Sincronizar correo')}
+        subtitle={t('Lee las alertas de tu banco desde tu Gmail y crea movimientos pendientes. Gratis y casi en tiempo real.')}
       />
 
       <div className="grid gap-4">
         {/* Reglas por banco */}
         <Card className="grid gap-3">
-          <h3 className="text-sm font-semibold text-slate-700">
-            1. Remitentes de tu banco
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+            {t('1. Remitentes de tu banco')}
           </h3>
-          <p className="text-xs text-slate-500">
-            Indica de qué correos llegan las alertas (ej.{' '}
-            <code>notificaciones@bbva.mx</code>). Solo se leen esos correos.
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {t('Indica de qué correos llegan las alertas (ej.')}{' '}
+            <code>notificaciones@bbva.mx</code>). {t('Solo se leen esos correos.')}
           </p>
           {rules.length > 0 && (
-            <ul className="text-sm text-slate-600">
+            <ul className="text-sm text-slate-600 dark:text-slate-300">
               {rules.map((r) => (
                 <li key={r.id}>
                   <strong>{r.bank_name}:</strong>{' '}
@@ -107,19 +111,19 @@ export function EmailSyncPage() {
           )}
           <div className="grid gap-3 sm:grid-cols-3">
             <Input
-              label="Banco"
+              label={t('Banco')}
               value={bankName}
               onChange={(e) => setBankName(e.target.value)}
               placeholder="BBVA"
             />
             <Input
-              label="Remitentes (separados por coma)"
+              label={t('Remitentes (separados por coma)')}
               value={senders}
               onChange={(e) => setSenders(e.target.value)}
               placeholder="notificaciones@bbva.mx"
             />
             <Input
-              label="Regex de monto (opcional)"
+              label={t('Regex de monto (opcional)')}
               value={amountRegex}
               onChange={(e) => setAmountRegex(e.target.value)}
               placeholder="por \\$([\\d,]+\\.\\d{2})"
@@ -131,23 +135,23 @@ export function EmailSyncPage() {
               onClick={handleSaveRule}
               disabled={!bankName.trim() || !senders.trim() || saveRule.isPending}
             >
-              Guardar remitente
+              {t('Guardar remitente')}
             </Button>
           </div>
         </Card>
 
         {/* Conectar + sincronizar */}
         <Card className="grid gap-3">
-          <h3 className="text-sm font-semibold text-slate-700">
-            2. Conecta Gmail y sincroniza
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+            {t('2. Conecta Gmail y sincroniza')}
           </h3>
           {accounts.length > 0 && (
             <Select
-              label="Asignar a la cuenta (opcional)"
+              label={t('Asignar a la cuenta (opcional)')}
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
               options={[
-                { value: '', label: 'Sin cuenta' },
+                { value: '', label: t('Sin cuenta') },
                 ...accounts.map((a) => ({
                   value: a.id,
                   label: `${a.name} (${a.currency})`,
@@ -157,33 +161,32 @@ export function EmailSyncPage() {
           )}
           <div className="flex flex-wrap gap-3">
             {!providerToken ? (
-              <Button onClick={() => connectGmail()}>Conectar Gmail</Button>
+              <Button onClick={() => connectGmail()}>{t('Conectar Gmail')}</Button>
             ) : (
               <span className="self-center text-sm text-green-600">
-                ✓ Gmail conectado
+                ✓ {t('Gmail conectado')}
               </span>
             )}
             <Button
               onClick={handleSync}
               disabled={!providerToken || rules.length === 0 || syncEmail.isPending}
             >
-              {syncEmail.isPending ? 'Sincronizando…' : 'Sincronizar ahora'}
+              {syncEmail.isPending ? t('Sincronizando…') : t('Sincronizar ahora')}
             </Button>
           </div>
           {rules.length === 0 && (
             <p className="text-xs text-amber-600">
-              Agrega al menos un remitente arriba antes de sincronizar.
+              {t('Agrega al menos un remitente arriba antes de sincronizar.')}
             </p>
           )}
-          <p className="text-xs text-slate-400">
-            Los movimientos se crean como <strong>pendientes</strong>: revísalos y
-            confírmalos en Transacciones para que cuenten en tus saldos.
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            {t('Los movimientos se crean como pendientes: revísalos y confírmalos en Transacciones para que cuenten en tus saldos.')}
           </p>
         </Card>
 
         {msg && (
-          <Card className="border-brand-200 bg-brand-50">
-            <p className="text-sm font-medium text-brand-700">{msg}</p>
+          <Card className="border-brand-200 bg-brand-50 dark:bg-brand-800/40">
+            <p className="text-sm font-medium text-brand-700 dark:text-brand-500">{msg}</p>
           </Card>
         )}
       </div>

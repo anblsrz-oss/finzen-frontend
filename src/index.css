@@ -6,6 +6,11 @@
   color-scheme: light;
 }
 
+/* El store de ajustes agrega/quita la clase `dark` en <html>. */
+:root.dark {
+  color-scheme: dark;
+}
+
 html,
 body,
 #root {
