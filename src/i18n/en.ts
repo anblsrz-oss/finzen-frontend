@@ -461,9 +461,10 @@ export const en: Record<string, string> = {
   'o con tu correo': 'or with your email',
   'tucorreo@ejemplo.com': 'youremail@example.com',
   'Escribe tu correo.': 'Enter your email.',
-  'Te enviamos un código de 6 dígitos a {{email}}.':
-    'We sent a 6-digit code to {{email}}.',
-  'El código tiene 6 dígitos.': 'The code has 6 digits.',
+  'Te enviamos un código de acceso a {{email}}.':
+    'We sent an access code to {{email}}.',
+  'Escribe el código completo que te llegó al correo.':
+    'Enter the full code you received by email.',
   'Código incorrecto o expirado. Intenta de nuevo.':
     'Incorrect or expired code. Try again.',
   'Verificar y entrar': 'Verify and enter',

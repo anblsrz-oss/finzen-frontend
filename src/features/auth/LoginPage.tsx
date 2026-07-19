@@ -49,13 +49,13 @@ export function LoginPage() {
     }
     setEmail(normalized)
     setStep('code')
-    setInfo(t('Te enviamos un código de 6 dígitos a {{email}}.', { email: normalized }))
+    setInfo(t('Te enviamos un código de acceso a {{email}}.', { email: normalized }))
   }
 
   async function verifyCode() {
     const token = code.trim()
     if (token.length < 6) {
-      setError(t('El código tiene 6 dígitos.'))
+      setError(t('Escribe el código completo que te llegó al correo.'))
       return
     }
     setLoading(true)
@@ -115,9 +115,9 @@ export function LoginPage() {
               type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
-              maxLength={6}
-              placeholder="123456"
-              className="text-center text-lg tracking-[0.5em]"
+              maxLength={10}
+              placeholder="12345678"
+              className="text-center text-lg tracking-[0.4em]"
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
               onKeyDown={(e) => {
