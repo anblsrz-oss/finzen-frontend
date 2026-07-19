@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useEntitlements } from '@/hooks/useAppConfig'
@@ -7,18 +7,28 @@ import {
   useMonthlyTotals,
   useCategoryTotals,
 } from '@/hooks/useReports'
+import { useCategories } from '@/hooks/useCategories'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/Button'
+import { Select } from '@/components/ui/Select'
 import { IncomeExpenseChart } from '@/components/charts/IncomeExpenseChart'
 import { CategoryPieChart } from '@/components/charts/CategoryPieChart'
 import { ChartControls } from '@/components/charts/ChartControls'
 import { Money } from '@/components/ui/Money'
+import { formatDate } from '@/lib/format'
+import { exportReportToExcel } from '@/lib/exportExcel'
+import type { ExportMode } from '@/lib/exportExcel'
 
 export function ReportsPage() {
   const { t } = useTranslation()
   const { session, profile } = useAuth()
   const userId = session?.user?.id
+  const incomeExpenseRef = useRef<HTMLDivElement>(null)
+  const categoryRef = useRef<HTMLDivElement>(null)
+  const [exportMode, setExportMode] = useState<ExportMode>('both')
+  const [exporting, setExporting] = useState(false)
   const [startDate, setStartDate] = useState(
     new Date(new Date().getFullYear(), new Date().getMonth(), 1)
       .toISOString()
@@ -41,6 +51,64 @@ export function ReportsPage() {
   const categories = categoryQuery.data || []
   const mainCurrency = profile?.main_currency ?? 'MXN'
   const { canUseReportsFilters } = useEntitlements()
+
+  // Mapa id→categoría para nombrar los movimientos exportados.
+  const categoriesQuery = useCategories(userId)
+  const categoryById = new Map(
+    (categoriesQuery.data || []).map((c) => [c.id, c]),
+  )
+
+  const hasData = monthly.length > 0 || categories.length > 0
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const transactions = (summary?.transactions || [])
+        .slice()
+        .sort((a, b) => (a.tx_date < b.tx_date ? 1 : -1))
+        .map((tx) => {
+          const cat = tx.category_id ? categoryById.get(tx.category_id) : undefined
+          return {
+            date: formatDate(tx.tx_date),
+            concept: tx.concept || '',
+            category: cat ? `${cat.icon || ''} ${cat.name}`.trim() : '',
+            kind:
+              tx.kind === 'income'
+                ? t('Ingreso')
+                : tx.kind === 'expense'
+                  ? t('Egreso')
+                  : t('Transferencia'),
+            amount: tx.amount,
+            currency: tx.currency,
+          }
+        })
+
+      await exportReportToExcel({
+        mode: exportMode,
+        fileName: `finzen-reporte-${startDate}_a_${endDate}.xlsx`,
+        monthly: monthly.map((m) => ({
+          monthLabel: m.monthLabel,
+          income: m.income,
+          expense: m.expense,
+        })),
+        categories: categories.map((c) => ({
+          icon: c.icon,
+          name: c.name,
+          total: c.total,
+        })),
+        transactions,
+        charts: [
+          { title: t('Ingresos vs Egresos'), el: incomeExpenseRef.current },
+          { title: t('Gastos por Categoría'), el: categoryRef.current },
+        ],
+      })
+    } catch (err: any) {
+      console.error('Error al exportar a Excel:', err)
+      alert(t('No se pudo exportar: {{error}}', { error: err?.message || 'error' }))
+    } finally {
+      setExporting(false)
+    }
+  }
 
   return (
     <>
@@ -108,9 +176,24 @@ export function ReportsPage() {
 
       {/* Gráficas */}
       <div className="space-y-6">
-        {(monthly.length > 0 || categories.length > 0) && (
-          <Card>
+        {hasData && (
+          <Card className="space-y-4">
             <ChartControls />
+            <div className="flex flex-wrap items-end gap-3 border-t border-slate-200 dark:border-slate-700 pt-4">
+              <Select
+                label={t('Exportar a Excel')}
+                options={[
+                  { value: 'both', label: t('Tablas y gráficos') },
+                  { value: 'tables', label: t('Solo tablas') },
+                  { value: 'charts', label: t('Solo gráficos') },
+                ]}
+                value={exportMode}
+                onChange={(e) => setExportMode(e.target.value as ExportMode)}
+              />
+              <Button onClick={handleExport} disabled={exporting}>
+                {exporting ? t('Exportando…') : `📊 ${t('Descargar Excel')}`}
+              </Button>
+            </div>
           </Card>
         )}
         {monthly.length > 0 && (
@@ -118,7 +201,9 @@ export function ReportsPage() {
             <h3 className="mb-4 font-semibold text-slate-800 dark:text-slate-100">
               {t('Ingresos vs Egresos')}
             </h3>
-            <IncomeExpenseChart data={monthly} />
+            <div ref={incomeExpenseRef} className="bg-white dark:bg-slate-800">
+              <IncomeExpenseChart data={monthly} />
+            </div>
           </Card>
         )}
 
@@ -127,7 +212,9 @@ export function ReportsPage() {
             <h3 className="mb-4 font-semibold text-slate-800 dark:text-slate-100">
               {t('Gastos por Categoría')}
             </h3>
-            <CategoryPieChart data={categories} />
+            <div ref={categoryRef} className="bg-white dark:bg-slate-800">
+              <CategoryPieChart data={categories} />
+            </div>
           </Card>
         )}
 
