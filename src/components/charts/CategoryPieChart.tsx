@@ -11,10 +11,10 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
+import { useTranslation } from 'react-i18next'
 import { useSettings, resolveIsDark } from '@/store/useSettings'
 import type { CategoryChartType } from '@/store/useSettings'
-import { paletteColorAt } from '@/lib/categoryColors'
-import type { ChartPaletteKey } from '@/lib/categoryColors'
+import { resolveChartColor } from '@/lib/categoryColors'
 
 interface CategoryData {
   name: string
@@ -27,15 +27,16 @@ interface CategoryPieChartProps {
   data: CategoryData[]
   // Si no se pasan, se usan las preferencias guardadas en settings.
   type?: CategoryChartType
-  palette?: ChartPaletteKey
+  palette?: string
 }
 
 export function CategoryPieChart({ data, type, palette }: CategoryPieChartProps) {
+  const { t } = useTranslation()
   const theme = useSettings((s) => s.theme)
   const prefType = useSettings((s) => s.categoryChartType)
   const prefPalette = useSettings((s) => s.chartPalette)
   const chartType = type ?? prefType
-  const paletteKey = (palette ?? prefPalette) as ChartPaletteKey
+  const paletteKey = palette ?? prefPalette
   const dark = resolveIsDark(theme)
 
   if (data.length === 0) {
@@ -46,11 +47,12 @@ export function CategoryPieChart({ data, type, palette }: CategoryPieChartProps)
     )
   }
 
-  // Color propio de la categoría o, si no tiene, uno de la paleta por índice.
+  // "Por categoría" usa el color propio; una paleta fija sobreescribe todo.
+  // El nombre viene en español desde la BD: se traduce al mostrarlo.
   const chartData = data.map((d, i) => ({
-    name: `${d.icon} ${d.name}`,
+    name: `${d.icon} ${t(d.name)}`,
     value: d.total,
-    color: d.color || paletteColorAt(i, paletteKey),
+    color: resolveChartColor(d.color, i, paletteKey),
   }))
 
   const total = chartData.reduce((sum, d) => sum + d.value, 0)

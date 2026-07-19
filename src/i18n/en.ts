@@ -625,4 +625,56 @@ export const en: Record<string, string> = {
   'Descargar app (Android)': 'Download app (Android)',
   'En Android, permite instalar apps de orígenes desconocidos al abrir el archivo.':
     'On Android, allow installing apps from unknown sources when opening the file.',
+
+  // Nombres de las categorías del sistema (viven en la BD en español; se
+  // traducen al mostrarlas). Comida/Transporte/Hogar/Salud/Compras/
+  // Rendimientos ya están arriba.
+  Salario: 'Salary',
+  'Otros ingresos': 'Other income',
+  'Otros gastos': 'Other expenses',
+  Entretenimiento: 'Entertainment',
+  Servicios: 'Utilities',
+  Cashback: 'Cashback',
+  // 'Sin categoría' ya está definida más arriba.
+
+  // Ajustes 2 — privacidad, gráficas y export
+  'Ocultar montos': 'Hide amounts',
+  'Mostrar montos': 'Show amounts',
+  Color: 'Color',
+  'Guardar cambios': 'Save changes',
+  'Ofrece cashback': 'Offers cashback',
+  '(regístralo como ingreso con la categoría Cashback)':
+    '(record it as income using the Cashback category)',
+  Barras: 'Bars',
+  Líneas: 'Lines',
+  Pastel: 'Pie',
+  Dona: 'Donut',
+  'Paleta de colores': 'Color palette',
+  'Por categoría': 'By category',
+  Vivo: 'Vivid',
+  Océano: 'Ocean',
+  Cálido: 'Warm',
+  Ingresos: 'Income',
+  Egresos: 'Expenses',
+  'Gastos por categoría': 'Expenses by category',
+  'Exportar a Excel': 'Export to Excel',
+  'Tablas y gráficos': 'Tables and charts',
+  'Solo tablas': 'Tables only',
+  'Solo gráficos': 'Charts only',
+  'Descargar Excel': 'Download Excel',
+  'Exportando…': 'Exporting…',
+  'No se pudo exportar: {{error}}': 'Could not export: {{error}}',
+
+  // Ajustes 2 — tema configurable por admin
+  'Colores de la app': 'App colors',
+  'Personaliza el color de acento y los fondos. Aplica a toda la web y la app.':
+    'Customize the accent color and backgrounds. Applies to the whole web and app.',
+  'Acento (marca)': 'Accent (brand)',
+  'Fondo (claro)': 'Background (light)',
+  'Superficie (claro)': 'Surface (light)',
+  'Fondo (oscuro)': 'Background (dark)',
+  'Superficie (oscuro)': 'Surface (dark)',
+  'Guardar colores': 'Save colors',
+  Restablecer: 'Reset',
+  'Categoría del sistema (editable por admin)': 'System category (admin editable)',
 }

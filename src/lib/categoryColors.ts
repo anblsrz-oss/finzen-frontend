@@ -31,8 +31,19 @@ export type ChartPaletteKey = keyof typeof CHART_PALETTES
 
 export const CHART_PALETTE_KEYS = Object.keys(CHART_PALETTES) as ChartPaletteKey[]
 
+// Opción especial: usar el color propio de cada categoría (el que se elige en
+// la pantalla de Categorías) en vez de una paleta fija.
+export const CATEGORY_PALETTE_OPTION = 'categoria'
+
+// Opciones del selector: primero "Por categoría", luego las paletas fijas.
+export const CHART_PALETTE_OPTIONS: string[] = [
+  CATEGORY_PALETTE_OPTION,
+  ...CHART_PALETTE_KEYS,
+]
+
 // Etiquetas legibles para el selector de paleta.
-export const CHART_PALETTE_LABELS: Record<ChartPaletteKey, string> = {
+export const CHART_PALETTE_LABELS: Record<string, string> = {
+  [CATEGORY_PALETTE_OPTION]: 'Por categoría',
   vivo: 'Vivo',
   pastel: 'Pastel',
   oceano: 'Océano',
@@ -44,4 +55,18 @@ export const CHART_PALETTE_LABELS: Record<ChartPaletteKey, string> = {
 export function paletteColorAt(index: number, palette: ChartPaletteKey = 'vivo'): string {
   const colors = CHART_PALETTES[palette] ?? CATEGORY_COLORS
   return colors[index % colors.length]
+}
+
+// Color final de una porción de gráfica. Con "Por categoría" manda el color
+// propio de la categoría; con una paleta fija, la paleta sobreescribe todo
+// (si no, las categorías del sistema —que traen color— ignorarían la paleta).
+export function resolveChartColor(
+  ownColor: string | null | undefined,
+  index: number,
+  palette: string,
+): string {
+  if (palette === CATEGORY_PALETTE_OPTION) {
+    return ownColor || paletteColorAt(index, 'vivo')
+  }
+  return paletteColorAt(index, palette as ChartPaletteKey)
 }

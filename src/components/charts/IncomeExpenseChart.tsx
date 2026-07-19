@@ -10,6 +10,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
+import { useTranslation } from 'react-i18next'
 import { useSettings, resolveIsDark } from '@/store/useSettings'
 import type { IncomeExpenseChartType } from '@/store/useSettings'
 
@@ -34,6 +35,7 @@ export function IncomeExpenseChart({
   incomeColor = '#16a34a',
   expenseColor = '#ef4444',
 }: IncomeExpenseChartProps) {
+  const { t } = useTranslation()
   const theme = useSettings((s) => s.theme)
   const prefType = useSettings((s) => s.incomeExpenseChartType)
   const chartType = type ?? prefType
@@ -63,8 +65,8 @@ export function IncomeExpenseChart({
           <YAxis tick={{ fill: axisColor }} stroke={gridColor} />
           {tooltip}
           <Legend wrapperStyle={{ color: axisColor }} />
-          <Line type="monotone" dataKey="income" stroke={incomeColor} name="Ingresos" strokeWidth={2} />
-          <Line type="monotone" dataKey="expense" stroke={expenseColor} name="Egresos" strokeWidth={2} />
+          <Line type="monotone" dataKey="income" stroke={incomeColor} name={t('Ingresos')} strokeWidth={2} />
+          <Line type="monotone" dataKey="expense" stroke={expenseColor} name={t('Egresos')} strokeWidth={2} />
         </LineChart>
       ) : (
         <BarChart data={data}>
@@ -73,8 +75,8 @@ export function IncomeExpenseChart({
           <YAxis tick={{ fill: axisColor }} stroke={gridColor} />
           {tooltip}
           <Legend wrapperStyle={{ color: axisColor }} />
-          <Bar dataKey="income" fill={incomeColor} name="Ingresos" />
-          <Bar dataKey="expense" fill={expenseColor} name="Egresos" />
+          <Bar dataKey="income" fill={incomeColor} name={t('Ingresos')} />
+          <Bar dataKey="expense" fill={expenseColor} name={t('Egresos')} />
         </BarChart>
       )}
     </ResponsiveContainer>

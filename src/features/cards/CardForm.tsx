@@ -219,34 +219,34 @@ export function CardForm({ accounts, card, onSuccess, onCancel }: CardFormProps)
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Input
-            label={t('Últimos 4 dígitos (opcional)')}
-            placeholder="1234"
-            inputMode="numeric"
-            maxLength={4}
-            {...form.register('last4')}
-            error={form.formState.errors.last4?.message}
-          />
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
-              {t('Color de la tarjeta')}
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {CARD_GRADIENT_KEYS.map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => form.setValue('color', key)}
-                  className={`h-8 w-8 rounded-lg bg-gradient-to-br ${CARD_GRADIENTS[key]} transition-transform ${
-                    selectedColor === key
-                      ? 'ring-2 ring-brand-500 ring-offset-1 dark:ring-offset-slate-900'
-                      : 'hover:scale-105'
-                  }`}
-                  aria-label={key}
-                />
-              ))}
-            </div>
+        <Input
+          label={t('Últimos 4 dígitos (opcional)')}
+          placeholder="1234"
+          inputMode="numeric"
+          maxLength={4}
+          {...form.register('last4')}
+          error={form.formState.errors.last4?.message}
+        />
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
+            {t('Color de la tarjeta')}
+          </label>
+          <div className="grid grid-cols-8 gap-2 rounded-lg border border-slate-300 dark:border-slate-600 p-3 sm:grid-cols-12">
+            {CARD_GRADIENT_KEYS.map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => form.setValue('color', key)}
+                title={key}
+                className={`aspect-square w-full rounded-md bg-gradient-to-br ${CARD_GRADIENTS[key]} transition-transform ${
+                  selectedColor === key
+                    ? 'ring-2 ring-brand-500 ring-offset-1 dark:ring-offset-slate-900'
+                    : 'hover:scale-110'
+                }`}
+                aria-label={key}
+              />
+            ))}
           </div>
         </div>
 

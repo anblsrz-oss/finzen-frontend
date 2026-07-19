@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useSettings } from '@/store/useSettings'
 import { Select } from '@/components/ui/Select'
-import { CHART_PALETTE_KEYS, CHART_PALETTE_LABELS } from '@/lib/categoryColors'
+import { CHART_PALETTE_OPTIONS, CHART_PALETTE_LABELS } from '@/lib/categoryColors'
 
 // Controles para personalizar el tipo de gráfico y la paleta de colores.
 // La preferencia se guarda en settings (localStorage) y aplica en Reportes y Resumen.
@@ -37,7 +37,10 @@ export function ChartControls() {
       />
       <Select
         label={t('Paleta de colores')}
-        options={CHART_PALETTE_KEYS.map((k) => ({ value: k, label: t(CHART_PALETTE_LABELS[k]) }))}
+        options={CHART_PALETTE_OPTIONS.map((k) => ({
+          value: k,
+          label: t(CHART_PALETTE_LABELS[k]),
+        }))}
         value={chartPalette}
         onChange={(e) => setChartPalette(e.target.value)}
       />

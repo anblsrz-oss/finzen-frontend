@@ -71,7 +71,7 @@ export function ReportsPage() {
           return {
             date: formatDate(tx.tx_date),
             concept: tx.concept || '',
-            category: cat ? `${cat.icon || ''} ${cat.name}`.trim() : '',
+            category: cat ? `${cat.icon || ''} ${t(cat.name)}`.trim() : '',
             kind:
               tx.kind === 'income'
                 ? t('Ingreso')
@@ -93,7 +93,7 @@ export function ReportsPage() {
         })),
         categories: categories.map((c) => ({
           icon: c.icon,
-          name: c.name,
+          name: t(c.name),
           total: c.total,
         })),
         transactions,

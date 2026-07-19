@@ -49,7 +49,8 @@ export const useSettings = create<SettingsState>()(
       hideAmounts: false,
       incomeExpenseChartType: 'bar',
       categoryChartType: 'pie',
-      chartPalette: 'vivo',
+      // 'categoria' = usar el color propio de cada categoría.
+      chartPalette: 'categoria',
       setTheme: (theme) => {
         set({ theme })
         applyTheme(theme)

@@ -3,13 +3,37 @@ import type { CardRow } from '@/types/db'
 import { CardNetworkLogo } from './CardNetworkLogo'
 
 // Gradientes disponibles para las tarjetas (clave guardada en cards.color).
+// Paleta amplia tipo Word: se recorren los tonos para poder elegir con detalle.
+// Las claves originales (blue/purple/emerald/slate/rose/amber) se conservan
+// para no romper las tarjetas ya guardadas.
 export const CARD_GRADIENTS: Record<string, string> = {
+  // Fríos
+  sky: 'from-sky-500 to-blue-700',
   blue: 'from-blue-600 to-indigo-800',
+  indigo: 'from-indigo-600 to-blue-900',
+  navy: 'from-blue-900 to-slate-900',
+  violet: 'from-violet-600 to-purple-900',
   purple: 'from-purple-600 to-fuchsia-800',
-  emerald: 'from-emerald-600 to-teal-800',
-  slate: 'from-slate-700 to-slate-900',
+  fuchsia: 'from-fuchsia-500 to-purple-800',
+  pink: 'from-pink-500 to-fuchsia-700',
+  // Cálidos
   rose: 'from-rose-600 to-pink-800',
+  red: 'from-red-500 to-rose-800',
+  orange: 'from-orange-500 to-red-700',
   amber: 'from-amber-500 to-orange-700',
+  yellow: 'from-yellow-400 to-amber-600',
+  gold: 'from-yellow-600 to-amber-800',
+  lime: 'from-lime-500 to-green-700',
+  green: 'from-green-500 to-emerald-800',
+  // Verdes/neutros
+  emerald: 'from-emerald-600 to-teal-800',
+  teal: 'from-teal-500 to-emerald-800',
+  cyan: 'from-cyan-500 to-teal-700',
+  slate: 'from-slate-700 to-slate-900',
+  gray: 'from-gray-600 to-gray-900',
+  zinc: 'from-zinc-600 to-zinc-900',
+  stone: 'from-stone-600 to-stone-900',
+  black: 'from-neutral-800 to-black',
 }
 
 export const CARD_GRADIENT_KEYS = Object.keys(CARD_GRADIENTS)

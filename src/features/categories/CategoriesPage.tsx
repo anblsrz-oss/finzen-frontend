@@ -18,8 +18,9 @@ import type { CategoryRow } from '@/types/db'
 
 export function CategoriesPage() {
   const { t } = useTranslation()
-  const { session } = useAuth()
+  const { session, profile } = useAuth()
   const userId = session?.user?.id
+  const isAdmin = !!profile?.is_admin
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [name, setName] = useState('')
@@ -152,7 +153,9 @@ export function CategoriesPage() {
                       {cat.icon || '•'}
                     </span>
                     <div>
-                      <p className="font-medium text-slate-800 dark:text-slate-100">{cat.name}</p>
+                      <p className="font-medium text-slate-800 dark:text-slate-100">
+                        {t(cat.name)}
+                      </p>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
                         {cat.kind === 'income' ? t('Ingreso') : t('Egreso')}
                       </p>
@@ -184,14 +187,34 @@ export function CategoriesPage() {
             </h3>
             <div className="grid gap-2">
               {systemCategories.map((cat) => (
-                <Card key={cat.id} className="flex items-center gap-3">
-                  <span className="text-2xl">{cat.icon || '•'}</span>
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-800 dark:text-slate-100">{cat.name}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {cat.kind === 'income' ? 'Ingreso' : 'Egreso'}
-                    </p>
+                <Card key={cat.id} className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="flex h-9 w-9 items-center justify-center rounded-full text-xl"
+                      style={cat.color ? { backgroundColor: `${cat.color}22` } : undefined}
+                    >
+                      {cat.icon || '•'}
+                    </span>
+                    <div>
+                      <p className="font-medium text-slate-800 dark:text-slate-100">
+                        {t(cat.name)}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {cat.kind === 'income' ? t('Ingreso') : t('Egreso')}
+                      </p>
+                    </div>
                   </div>
+                  {/* Solo un admin puede ajustar las categorías globales. */}
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => startEdit(cat)}
+                      title={t('Categoría del sistema (editable por admin)')}
+                    >
+                      {t('Editar')}
+                    </Button>
+                  )}
                 </Card>
               ))}
             </div>
