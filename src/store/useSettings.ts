@@ -6,15 +6,24 @@ import { persist } from 'zustand/middleware'
 
 export type ThemePref = 'light' | 'dark' | 'system'
 export type LanguagePref = 'es' | 'en'
+export type IncomeExpenseChartType = 'bar' | 'line'
+export type CategoryChartType = 'pie' | 'donut' | 'bar'
 
 interface SettingsState {
   theme: ThemePref
   language: LanguagePref
   // Privacidad: oculta los montos (muestra asteriscos) en toda la app.
   hideAmounts: boolean
+  // Preferencias de gráficas (Reportes y Resumen).
+  incomeExpenseChartType: IncomeExpenseChartType
+  categoryChartType: CategoryChartType
+  chartPalette: string
   setTheme: (theme: ThemePref) => void
   setLanguage: (language: LanguagePref) => void
   toggleHideAmounts: () => void
+  setIncomeExpenseChartType: (type: IncomeExpenseChartType) => void
+  setCategoryChartType: (type: CategoryChartType) => void
+  setChartPalette: (palette: string) => void
 }
 
 const systemDarkQuery = () => window.matchMedia('(prefers-color-scheme: dark)')
@@ -38,12 +47,18 @@ export const useSettings = create<SettingsState>()(
       theme: 'system',
       language: 'es',
       hideAmounts: false,
+      incomeExpenseChartType: 'bar',
+      categoryChartType: 'pie',
+      chartPalette: 'vivo',
       setTheme: (theme) => {
         set({ theme })
         applyTheme(theme)
       },
       setLanguage: (language) => set({ language }),
       toggleHideAmounts: () => set((s) => ({ hideAmounts: !s.hideAmounts })),
+      setIncomeExpenseChartType: (incomeExpenseChartType) => set({ incomeExpenseChartType }),
+      setCategoryChartType: (categoryChartType) => set({ categoryChartType }),
+      setChartPalette: (chartPalette) => set({ chartPalette }),
     }),
     { name: 'finzen-settings' },
   ),

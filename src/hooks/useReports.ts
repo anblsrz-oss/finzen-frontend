@@ -128,7 +128,7 @@ export function useCategoryTotals(userId?: string, filters?: ReportFilters) {
 
       let query = supabase
         .from('transactions')
-        .select('*, categories(name, icon)')
+        .select('*, categories(name, icon, color)')
         .eq('user_id', userId)
         .eq('kind', 'expense')
         .is('family_id', null)
@@ -159,7 +159,9 @@ export function useCategoryTotals(userId?: string, filters?: ReportFilters) {
             name: catName,
             icon: catIcon,
             total: 0,
-            color: getColorForCategory(catName),
+            // Color propio de la categoría (editable en Categorías); si no tiene,
+            // la gráfica lo rellena con la paleta elegida por índice.
+            color: tx.categories?.color || '',
           }
         }
         byCategory[catName].total += tx.base_amount ?? tx.amount
@@ -170,18 +172,4 @@ export function useCategoryTotals(userId?: string, filters?: ReportFilters) {
     },
     enabled: !!userId,
   })
-}
-
-function getColorForCategory(categoryName: string): string {
-  const colors: Record<string, string> = {
-    Supermercado: '#f59e0b',
-    Suscripciones: '#8b5cf6',
-    Servicios: '#0ea5e9',
-    Transporte: '#ef4444',
-    Restaurantes: '#f97316',
-    Salud: '#ec4899',
-    'Tarjeta de crédito': '#6366f1',
-    Gasolina: '#84cc16',
-  }
-  return colors[categoryName] || '#94a3b8'
 }

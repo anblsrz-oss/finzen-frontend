@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { IncomeExpenseChart } from '@/components/charts/IncomeExpenseChart'
 import { CategoryPieChart } from '@/components/charts/CategoryPieChart'
+import { ChartControls } from '@/components/charts/ChartControls'
 import { Money } from '@/components/ui/Money'
 
 export function ReportsPage() {
@@ -107,6 +108,11 @@ export function ReportsPage() {
 
       {/* Gráficas */}
       <div className="space-y-6">
+        {(monthly.length > 0 || categories.length > 0) && (
+          <Card>
+            <ChartControls />
+          </Card>
+        )}
         {monthly.length > 0 && (
           <Card>
             <h3 className="mb-4 font-semibold text-slate-800 dark:text-slate-100">

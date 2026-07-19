@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
 import { IncomeExpenseChart } from '@/components/charts/IncomeExpenseChart'
 import { CategoryPieChart } from '@/components/charts/CategoryPieChart'
+import { ChartControls } from '@/components/charts/ChartControls'
 import { Money } from '@/components/ui/Money'
 
 export function DashboardPage() {
@@ -80,6 +81,11 @@ export function DashboardPage() {
 
       {/* Gráficas */}
       <div className="space-y-6">
+        {(monthly.length > 0 || categories.length > 0) && (
+          <Card>
+            <ChartControls />
+          </Card>
+        )}
         {monthly.length > 0 && (
           <Card>
             <h3 className="mb-4 font-semibold text-slate-800 dark:text-slate-100">
