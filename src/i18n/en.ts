@@ -456,4 +456,172 @@ export const en: Record<string, string> = {
     'SMS sending is not configured. Contact the administrator.',
   'No se pudo enviar el código.': 'Could not send the code.',
   'Código incorrecto.': 'Incorrect code.',
+
+  // Login (correo / código)
+  'o con tu correo': 'or with your email',
+  'tucorreo@ejemplo.com': 'youremail@example.com',
+  'Escribe tu correo.': 'Enter your email.',
+  'Te enviamos un código de 6 dígitos a {{email}}.':
+    'We sent a 6-digit code to {{email}}.',
+  'El código tiene 6 dígitos.': 'The code has 6 digits.',
+  'Código incorrecto o expirado. Intenta de nuevo.':
+    'Incorrect or expired code. Try again.',
+  'Verificar y entrar': 'Verify and enter',
+  'Usar otro correo': 'Use another email',
+  '← Volver al inicio': '← Back to home',
+
+  // Landing
+  'Iniciar sesión': 'Sign in',
+  'Tus finanzas personales, claras y en un solo lugar.':
+    'Your personal finances, clear and all in one place.',
+  'Organiza ingresos, gastos, cuentas y tarjetas. Escanea recibos y entiende a dónde va tu dinero.':
+    'Organize income, expenses, accounts and cards. Scan receipts and understand where your money goes.',
+  'Crear cuenta gratis': 'Create free account',
+  'Ya tengo cuenta': 'I already have an account',
+  'Todas las funciones gratuitas por el momento.':
+    'All features free for now.',
+  'Cómo funciona': 'How it works',
+  'Conecta tus cuentas': 'Connect your accounts',
+  'Registra cuentas y tarjetas, o sincroniza tus movimientos desde el correo.':
+    'Add accounts and cards, or sync your transactions from email.',
+  'Captura sin esfuerzo': 'Capture effortlessly',
+  'Escanea tickets y facturas con la cámara o sube un PDF; FinZen extrae los datos.':
+    'Scan receipts and invoices with the camera or upload a PDF; FinZen extracts the data.',
+  'Entiende tu dinero': 'Understand your money',
+  'Mira tu balance, gastos por categoría y reportes claros en un solo lugar.':
+    'See your balance, spending by category and clear reports all in one place.',
+  'Todo lo que necesitas': 'Everything you need',
+  'Cuentas y tarjetas': 'Accounts and cards',
+  'Controla saldos, límites y fechas de corte.':
+    'Track balances, limits and cut-off dates.',
+  'Recibos con OCR': 'Receipts with OCR',
+  'Foto o PDF del ticket y listo.': 'A photo or PDF of the receipt and done.',
+  'Sincronización por correo': 'Email sync',
+  'Importa cargos desde tus notificaciones.':
+    'Import charges from your notifications.',
+  'Comparte tarjetas y gastos con tu familia.':
+    'Share cards and expenses with your family.',
+  'Multi-moneda': 'Multi-currency',
+  'Registra en varias monedas.': 'Record in several currencies.',
+  'Modo oscuro e idiomas': 'Dark mode and languages',
+  'Español e inglés, claro y oscuro.': 'Spanish and English, light and dark.',
+  'Llévala en tu celular': 'Take it on your phone',
+  'Instala FinZen como app en tu teléfono. Pronto también un APK descargable para Android.':
+    'Install FinZen as an app on your phone. Soon also a downloadable APK for Android.',
+  'Empezar ahora': 'Start now',
+  '¿Ideas para mejorar?': 'Ideas to improve?',
+  'Cuéntanos qué te gustaría ver en FinZen. Leemos todos los comentarios.':
+    'Tell us what you would like to see in FinZen. We read every comment.',
+  'Tu nombre (opcional)': 'Your name (optional)',
+  'Tu correo (opcional)': 'Your email (optional)',
+  '¿Qué te gustaría mejorar o agregar?': 'What would you like to improve or add?',
+  'Enviar comentario': 'Send comment',
+  'No se pudo enviar. Intenta más tarde.': 'Could not send. Try again later.',
+  '¡Gracias! Recibimos tu comentario.': 'Thanks! We received your comment.',
+  'FinZen — Finanzas personales.': 'FinZen — Personal finance.',
+
+  // Multimoneda
+  'Moneda principal': 'Main currency',
+  'Tu balance y reportes se muestran en esta moneda. Los movimientos en otra moneda se convierten con el tipo de cambio.':
+    'Your balance and reports are shown in this currency. Transactions in another currency are converted using the exchange rate.',
+  'Tipo de cambio ({{from}}→{{to}})': 'Exchange rate ({{from}}→{{to}})',
+  'Obteniendo…': 'Fetching…',
+  'Equivale a': 'Equivalent to',
+  'No se obtuvo el tipo de cambio automático. Escríbelo manualmente.':
+    'The automatic exchange rate was not obtained. Enter it manually.',
+  'Puedes ajustar el tipo de cambio si lo necesitas.':
+    'You can adjust the exchange rate if you need to.',
+  'Escribe un tipo de cambio válido.': 'Enter a valid exchange rate.',
+  'Obteniendo tipo de cambio…': 'Fetching exchange rate…',
+  '≈ {{base}} en tu moneda principal (tipo de cambio {{rate}}).':
+    '≈ {{base}} in your main currency (rate {{rate}}).',
+  'No se obtuvo el tipo de cambio. Registra el gasto desde Transacciones para ajustarlo.':
+    'The exchange rate was not obtained. Record the expense from Transactions to adjust it.',
+  'No se obtuvo el tipo de cambio. Intenta de nuevo o registra el gasto desde Transacciones.':
+    'The exchange rate was not obtained. Try again or record the expense from Transactions.',
+
+  // MVP 3 — Familia
+  'Eliminar familia': 'Delete family',
+  '¿Eliminar la familia "{{name}}"? Se borrarán los gastos familiares, los miembros y las tarjetas compartidas. Esta acción no se puede deshacer.':
+    'Delete the family "{{name}}"? Family expenses, members and shared cards will be removed. This action cannot be undone.',
+
+  // MVP 3 — Galería de emojis
+  'Ícono': 'Icon',
+  Dinero: 'Money',
+  Comida: 'Food',
+  Transporte: 'Transport',
+  Hogar: 'Home',
+  Salud: 'Health',
+  Ocio: 'Leisure',
+  Compras: 'Shopping',
+  'Trabajo/Estudio': 'Work/Study',
+  Otros: 'Other',
+
+  // MVP 3 — Beca
+  Beca: 'Scholarship',
+  'Es una cuenta de beca': 'This is a scholarship account',
+  'Es una tarjeta de beca': 'This is a scholarship card',
+  'Nombre de la beca (opcional)': 'Scholarship name (optional)',
+  'Ej: Beca Benito Juárez': 'E.g. Benito Juárez Scholarship',
+
+  // MVP 3 — Admin
+  'Hacer Admin': 'Make Admin',
+  'Quitar Admin': 'Remove Admin',
+  'No puedes quitarte admin a ti mismo': "You can't remove your own admin",
+
+  // MVP 4 — Tarjetas visuales + escaneo
+  'Crédito': 'Credit',
+  'Débito': 'Debit',
+  'Escanear tarjeta con la cámara': 'Scan card with the camera',
+  'Leyendo tarjeta…': 'Reading card…',
+  'Por tu seguridad solo se leen la marca y los últimos 4 dígitos. No se guarda el número completo, CVC ni la fecha.':
+    'For your security only the brand and last 4 digits are read. The full number, CVC and expiry date are not stored.',
+  'Detectado: {{brand}} ····{{last4}}. Revisa y completa los datos.':
+    'Detected: {{brand}} ····{{last4}}. Review and complete the details.',
+  tarjeta: 'card',
+  'No se detectaron los datos. Captúralos manualmente.':
+    'No data detected. Enter it manually.',
+  'No se pudo leer la tarjeta: {{error}}. Captúrala manualmente.':
+    'Could not read the card: {{error}}. Enter it manually.',
+  'Últimos 4 dígitos (opcional)': 'Last 4 digits (optional)',
+  'Color de la tarjeta': 'Card color',
+
+  // MVP 5 — Config admin (límites y premium)
+  'Plan gratis: máximo {{n}} cuentas. Actualiza a Premium para agregar más.':
+    'Free plan: max {{n}} accounts. Upgrade to Premium to add more.',
+  'Plan gratis: máximo {{n}} tarjetas. Actualiza a Premium para agregar más.':
+    'Free plan: max {{n}} cards. Upgrade to Premium to add more.',
+  'Plan gratis: máximo {{n}} transacciones. Actualiza a Premium para registrar más.':
+    'Free plan: max {{n}} transactions. Upgrade to Premium to record more.',
+  'Planes y límites': 'Plans and limits',
+  'Define los límites del plan gratis (0 = ilimitado) y qué funciones requieren Premium.':
+    'Set the free plan limits (0 = unlimited) and which features require Premium.',
+  'Máx. cuentas (gratis)': 'Max accounts (free)',
+  'Máx. tarjetas (gratis)': 'Max cards (free)',
+  'Máx. transacciones (gratis)': 'Max transactions (free)',
+  'Funciones que requieren Premium': 'Features that require Premium',
+  'Meses sin intereses / diferido': 'Interest-free months / deferred',
+  'Filtros de reportes': 'Report filters',
+  'Guardar configuración': 'Save configuration',
+  'Guardado ✓': 'Saved ✓',
+
+  // MVP 6 — XML CFDI
+  'Fotografía el ticket con buena luz y lo más plano posible, o sube un PDF o XML (factura CFDI) de tu recibo. Después podrás revisar y corregir los datos detectados.':
+    'Photograph the receipt with good light and as flat as possible, or upload a PDF or XML (CFDI invoice). Then you can review and correct the detected data.',
+  'o subir una imagen, PDF o XML (factura)': 'or upload an image, PDF or XML (invoice)',
+  'El XML no parece una factura CFDI (SAT). Verifica el archivo.':
+    'The XML does not look like a CFDI (SAT) invoice. Check the file.',
+  'No se pudo leer el XML: {{error}}.': 'Could not read the XML: {{error}}.',
+
+  // MVP 7 — Actualización y descarga
+  'Hay una nueva versión disponible.': 'A new version is available.',
+  'Hay una nueva versión ({{v}}). Descarga la actualización.':
+    'A new version ({{v}}) is available. Download the update.',
+  Descargar: 'Download',
+  Cerrar: 'Close',
+  'Instálala como app desde tu navegador, o descarga el APK para Android.':
+    'Install it as an app from your browser, or download the APK for Android.',
+  'Descargar app (Android)': 'Download app (Android)',
+  'En Android, permite instalar apps de orígenes desconocidos al abrir el archivo.':
+    'On Android, allow installing apps from unknown sources when opening the file.',
 }

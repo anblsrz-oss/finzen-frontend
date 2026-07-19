@@ -31,6 +31,8 @@ export function useCreateAccount() {
       initial_balance: number
       has_yield: boolean
       yield_rate?: number
+      is_scholarship?: boolean
+      scholarship_name?: string
     }) => {
       const { data, error } = await supabase
         .from('accounts')
@@ -44,6 +46,8 @@ export function useCreateAccount() {
             initial_balance: input.initial_balance,
             has_yield: input.has_yield,
             yield_rate: input.yield_rate,
+            is_scholarship: input.is_scholarship ?? false,
+            scholarship_name: input.scholarship_name || null,
           },
         ])
         .select()

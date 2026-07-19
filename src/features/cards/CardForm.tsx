@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -9,6 +10,9 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Card } from '@/components/ui/Card'
 import { CURRENCIES_ARRAY, CURRENCIES } from '@/lib/format'
+import { recognizeImage } from '@/lib/ocr'
+import { parseCardText } from '@/lib/cardScanParser'
+import { CARD_GRADIENTS, CARD_GRADIENT_KEYS } from './CardVisual'
 import type { AccountRow } from '@/types/db'
 
 const schema = z
@@ -21,6 +25,13 @@ const schema = z
     credit_limit: z.coerce.number().optional(),
     cut_day: z.coerce.number().optional(),
     payment_day: z.coerce.number().optional(),
+    last4: z
+      .string()
+      .optional()
+      .refine((v) => !v || /^\d{4}$/.test(v), 'Deben ser 4 dígitos'),
+    color: z.string().optional(),
+    is_scholarship: z.boolean().default(false),
+    scholarship_name: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.type === 'debit' && !data.account_id) {
@@ -60,6 +71,44 @@ export function CardForm({ accounts, onSuccess }: CardFormProps) {
   })
 
   const cardType = form.watch('type')
+  const selectedColor = form.watch('color')
+
+  const [scanning, setScanning] = useState(false)
+  const [scanProgress, setScanProgress] = useState(0)
+  const [scanMsg, setScanMsg] = useState<string | null>(null)
+
+  // Escanea la tarjeta con la cámara y rellena nombre/marca/últimos 4. Por
+  // seguridad NO se lee ni guarda el número completo, el CVC ni la fecha.
+  async function handleScan(file: File) {
+    setScanning(true)
+    setScanProgress(0)
+    setScanMsg(null)
+    try {
+      const text = await recognizeImage(file, setScanProgress, 'eng')
+      const parsed = parseCardText(text)
+      if (parsed.last4) form.setValue('last4', parsed.last4)
+      if (parsed.brand) form.setValue('brand', parsed.brand)
+      if (parsed.name && !form.getValues('name')) {
+        form.setValue('name', parsed.name)
+      }
+      setScanMsg(
+        parsed.last4
+          ? t('Detectado: {{brand}} ····{{last4}}. Revisa y completa los datos.', {
+              brand: parsed.brand ?? t('tarjeta'),
+              last4: parsed.last4,
+            })
+          : t('No se detectaron los datos. Captúralos manualmente.'),
+      )
+    } catch (err: any) {
+      setScanMsg(
+        t('No se pudo leer la tarjeta: {{error}}. Captúrala manualmente.', {
+          error: err?.message ?? t('error desconocido'),
+        }),
+      )
+    } finally {
+      setScanning(false)
+    }
+  }
 
   async function onSubmit(data: FormData) {
     if (!session?.user?.id) {
@@ -74,6 +123,10 @@ export function CardForm({ accounts, onSuccess }: CardFormProps) {
         credit_limit: data.credit_limit ?? undefined,
         cut_day: data.cut_day ?? undefined,
         payment_day: data.payment_day ?? undefined,
+        last4: data.last4,
+        color: data.color,
+        is_scholarship: data.is_scholarship,
+        scholarship_name: data.scholarship_name,
       },
       {
         onSuccess: () => {
@@ -91,6 +144,39 @@ export function CardForm({ accounts, onSuccess }: CardFormProps) {
   return (
     <Card className="mb-6 bg-slate-50 dark:bg-slate-900">
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {/* Escanear tarjeta con la cámara */}
+        <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-600 p-3">
+          <label className="flex cursor-pointer items-center justify-center gap-2 text-sm font-medium text-brand-700 dark:text-brand-500">
+            📷 {scanning ? t('Leyendo tarjeta…') : t('Escanear tarjeta con la cámara')}
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              disabled={scanning}
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) void handleScan(f)
+                e.target.value = ''
+              }}
+            />
+          </label>
+          {scanning && (
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-600">
+              <div
+                className="h-full bg-brand-600 transition-all"
+                style={{ width: `${Math.round(scanProgress * 100)}%` }}
+              />
+            </div>
+          )}
+          {scanMsg && (
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{scanMsg}</p>
+          )}
+          <p className="mt-1 text-center text-[11px] text-slate-400 dark:text-slate-500">
+            {t('Por tu seguridad solo se leen la marca y los últimos 4 dígitos. No se guarda el número completo, CVC ni la fecha.')}
+          </p>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <Input
             label={t('Nombre de la tarjeta')}
@@ -103,6 +189,37 @@ export function CardForm({ accounts, onSuccess }: CardFormProps) {
             placeholder={t('Visa, Mastercard...')}
             {...form.register('brand')}
           />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Input
+            label={t('Últimos 4 dígitos (opcional)')}
+            placeholder="1234"
+            inputMode="numeric"
+            maxLength={4}
+            {...form.register('last4')}
+            error={form.formState.errors.last4?.message}
+          />
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
+              {t('Color de la tarjeta')}
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {CARD_GRADIENT_KEYS.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => form.setValue('color', key)}
+                  className={`h-8 w-8 rounded-lg bg-gradient-to-br ${CARD_GRADIENTS[key]} transition-transform ${
+                    selectedColor === key
+                      ? 'ring-2 ring-brand-500 ring-offset-1 dark:ring-offset-slate-900'
+                      : 'hover:scale-105'
+                  }`}
+                  aria-label={key}
+                />
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-3 gap-4">
@@ -161,6 +278,26 @@ export function CardForm({ accounts, onSuccess }: CardFormProps) {
             />
           </div>
         )}
+
+        <div className="space-y-2">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              {...form.register('is_scholarship')}
+              className="cursor-pointer"
+            />
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+              🎓 {t('Es una tarjeta de beca')}
+            </span>
+          </label>
+          {form.watch('is_scholarship') && (
+            <Input
+              label={t('Nombre de la beca (opcional)')}
+              placeholder={t('Ej: Beca Benito Juárez')}
+              {...form.register('scholarship_name')}
+            />
+          )}
+        </div>
 
         <div className="flex gap-2">
           <Button

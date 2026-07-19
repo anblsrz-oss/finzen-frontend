@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
+import { EmojiPicker } from '@/components/ui/EmojiPicker'
 
 export function CategoriesPage() {
   const { t } = useTranslation()
@@ -72,35 +73,26 @@ export function CategoriesPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            <div className="grid grid-cols-3 gap-3">
-              <Select
-                label={t('Tipo')}
-                options={[
-                  { value: 'income', label: t('Ingreso') },
-                  { value: 'expense', label: t('Egreso') },
-                ]}
-                value={kind}
-                onChange={(e) =>
-                  setKind(e.target.value as 'income' | 'expense')
-                }
-              />
-              <Input
-                label={t('Ícono (emoji)')}
-                placeholder="⛽"
-                value={icon}
-                onChange={(e) => setIcon(e.target.value)}
-                maxLength={2}
-              />
-              <div className="flex items-end gap-2">
-                <Button
-                  className="flex-1"
-                  onClick={handleCreate}
-                  disabled={createCategory.isPending || !name.trim()}
-                >
-                  {t('Crear')}
-                </Button>
-              </div>
-            </div>
+            <Select
+              label={t('Tipo')}
+              options={[
+                { value: 'income', label: t('Ingreso') },
+                { value: 'expense', label: t('Egreso') },
+              ]}
+              value={kind}
+              onChange={(e) => setKind(e.target.value as 'income' | 'expense')}
+            />
+            <EmojiPicker
+              label={t('Ícono')}
+              value={icon}
+              onChange={setIcon}
+            />
+            <Button
+              onClick={handleCreate}
+              disabled={createCategory.isPending || !name.trim()}
+            >
+              {t('Crear')}
+            </Button>
           </div>
         </Card>
       )}

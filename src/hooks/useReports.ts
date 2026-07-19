@@ -41,14 +41,15 @@ export function useTransactionsSummary(userId?: string, filters?: ReportFilters)
 
       const txs = (data || []) as TransactionRow[]
 
-      // Calcular totales
+      // Totales en la moneda principal: usar base_amount (monto convertido).
+      // Fallback a amount para filas antiguas sin conversión.
       const totalIncome = txs
         .filter((t) => t.kind === 'income')
-        .reduce((sum, t) => sum + t.amount, 0)
+        .reduce((sum, t) => sum + (t.base_amount ?? t.amount), 0)
 
       const totalExpense = txs
         .filter((t) => t.kind === 'expense')
-        .reduce((sum, t) => sum + t.amount, 0)
+        .reduce((sum, t) => sum + (t.base_amount ?? t.amount), 0)
 
       const balance = totalIncome - totalExpense
 
@@ -95,10 +96,11 @@ export function useMonthlyTotals(userId?: string, filters?: ReportFilters) {
         if (!byMonth[month]) {
           byMonth[month] = { income: 0, expense: 0 }
         }
+        const value = tx.base_amount ?? tx.amount
         if (tx.kind === 'income') {
-          byMonth[month].income += tx.amount
+          byMonth[month].income += value
         } else if (tx.kind === 'expense') {
-          byMonth[month].expense += tx.amount
+          byMonth[month].expense += value
         }
       })
 
@@ -160,7 +162,7 @@ export function useCategoryTotals(userId?: string, filters?: ReportFilters) {
             color: getColorForCategory(catName),
           }
         }
-        byCategory[catName].total += tx.amount
+        byCategory[catName].total += tx.base_amount ?? tx.amount
       })
 
       return Object.values(byCategory)

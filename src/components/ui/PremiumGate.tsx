@@ -31,7 +31,10 @@ export function PremiumGate({
   }
 
   return (
-    <div title={tooltip} className="inline-block cursor-not-allowed opacity-50">
+    <div
+      title={tooltip}
+      className="inline-block cursor-not-allowed opacity-50 [&>*]:pointer-events-none"
+    >
       {children}
     </div>
   )

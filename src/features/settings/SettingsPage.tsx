@@ -4,6 +4,9 @@ import { useAuth } from '@/store/useAuth'
 import { useSettings, type ThemePref, type LanguagePref } from '@/store/useSettings'
 import { useMyFamilies, useMyInvitations } from '@/hooks/useFamily'
 import { useStartCheckout, useOpenBillingPortal } from '@/hooks/useBilling'
+import { useUpdateMainCurrency } from '@/hooks/useProfile'
+import { useEntitlements } from '@/hooks/useAppConfig'
+import { CURRENCIES } from '@/lib/format'
 import { PhoneSection } from './PhoneSection'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
@@ -37,6 +40,9 @@ export function SettingsPage() {
 
   const startCheckout = useStartCheckout()
   const openPortal = useOpenBillingPortal()
+  const updateMainCurrency = useUpdateMainCurrency()
+  const mainCurrency = profile?.main_currency ?? 'MXN'
+  const { canUseFamily } = useEntitlements()
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -124,6 +130,40 @@ export function SettingsPage() {
                 }`}
               >
                 {opt.label}
+              </button>
+            ))}
+          </div>
+        </Card>
+
+        {/* Moneda principal */}
+        <Card>
+          <p className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">
+            💱 {t('Moneda principal')}
+          </p>
+          <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
+            {t('Tu balance y reportes se muestran en esta moneda. Los movimientos en otra moneda se convierten con el tipo de cambio.')}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {CURRENCIES.map((cur) => (
+              <button
+                key={cur}
+                type="button"
+                disabled={updateMainCurrency.isPending}
+                onClick={() => {
+                  if (userId && cur !== mainCurrency) {
+                    updateMainCurrency.mutate(
+                      { userId, mainCurrency: cur },
+                      { onError: (e: any) => alert(`${t('Error:')} ${e.message}`) },
+                    )
+                  }
+                }}
+                className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
+                  mainCurrency === cur
+                    ? 'border-brand-600 bg-brand-50 dark:bg-brand-800/40 text-brand-700 dark:text-brand-500'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                {cur}
               </button>
             ))}
           </div>
@@ -217,11 +257,11 @@ export function SettingsPage() {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 {t('No participas en ningún plan familiar.')}
-                {!profile?.is_premium && ' ' + t('Crearlo requiere Premium.')}
+                {!canUseFamily && ' ' + t('Crearlo requiere Premium.')}
               </p>
               <Link to="/familia">
                 <Button size="sm" variant="secondary">
-                  {profile?.is_premium
+                  {canUseFamily
                     ? t('Crear plan familiar')
                     : t('Saber más')}
                 </Button>

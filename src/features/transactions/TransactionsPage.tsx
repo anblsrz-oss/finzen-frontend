@@ -10,8 +10,10 @@ import { useAccounts } from '@/hooks/useAccounts'
 import { useCards } from '@/hooks/useCards'
 import { useCategories } from '@/hooks/useCategories'
 import { useMyFamilies, useFamilyCards } from '@/hooks/useFamily'
+import { useEntitlements } from '@/hooks/useAppConfig'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/ui/Button'
+import { PremiumGate } from '@/components/ui/PremiumGate'
 import { Card } from '@/components/ui/Card'
 import { Modal } from '@/components/ui/Modal'
 import { TransactionForm } from './TransactionForm'
@@ -34,6 +36,7 @@ export function TransactionsPage() {
   const categoriesQuery = useCategories(userId)
   const deletionsQuery = useTransactionDeletions(userId)
   const deleteTx = useDeleteTransaction()
+  const { transactionLimit } = useEntitlements()
 
   // Tarjetas compartidas de mi familia (para registrar gastos familiares).
   const familiesQuery = useMyFamilies(userId)
@@ -96,12 +99,30 @@ export function TransactionsPage() {
                 ? t('Ocultar historial')
                 : t('Historial ({{count}})', { count: deletions.length })}
             </Button>
-            <Button onClick={() => setShowForm(!showForm)}>
-              {showForm ? t('Cancelar') : t('+ Nueva transacción')}
-            </Button>
+            {showForm ? (
+              <Button onClick={() => setShowForm(false)}>{t('Cancelar')}</Button>
+            ) : (
+              <PremiumGate
+                count={transactions.length}
+                limit={transactionLimit}
+                lockedTooltip={t('Plan gratis: máximo {{n}} transacciones. Actualiza a Premium para registrar más.', { n: transactionLimit })}
+              >
+                <Button onClick={() => setShowForm(true)}>
+                  {t('+ Nueva transacción')}
+                </Button>
+              </PremiumGate>
+            )}
           </div>
         }
       />
+
+      {!showForm && transactionLimit !== Infinity && transactions.length >= transactionLimit && (
+        <Card className="mb-4 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            {t('Plan gratis: máximo {{n}} transacciones. Actualiza a Premium para registrar más.', { n: transactionLimit })}
+          </p>
+        </Card>
+      )}
 
       {showForm && (
         <TransactionForm

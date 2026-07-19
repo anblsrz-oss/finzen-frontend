@@ -4,6 +4,7 @@ import { useAuth } from '@/store/useAuth'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAccounts, useDeleteAccount } from '@/hooks/useAccounts'
+import { useEntitlements } from '@/hooks/useAppConfig'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -19,6 +20,7 @@ export function AccountsPage() {
 
   const accountsQuery = useAccounts(userId)
   const deleteAccount = useDeleteAccount()
+  const { accountLimit } = useEntitlements()
 
   // Consultar la vista account_balances para saldos actuales
   const balancesQuery = useQuery({
@@ -58,7 +60,11 @@ export function AccountsPage() {
         title={t('Cuentas')}
         subtitle={t('Tus cuentas y bancos, con saldo y rendimientos.')}
         actions={
-          <PremiumGate count={accounts.length} limit={2}>
+          <PremiumGate
+            count={accounts.length}
+            limit={accountLimit}
+            lockedTooltip={t('Plan gratis: máximo {{n}} cuentas. Actualiza a Premium para agregar más.', { n: accountLimit })}
+          >
             <Button onClick={() => setShowForm(!showForm)}>
               {showForm ? t('Cancelar') : t('+ Agregar cuenta')}
             </Button>
@@ -81,7 +87,14 @@ export function AccountsPage() {
             return (
               <Card key={acc.id} className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-100">{acc.name}</h3>
+                  <h3 className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-100">
+                    {acc.name}
+                    {acc.is_scholarship && (
+                      <span className="inline-flex items-center rounded-full bg-violet-100 dark:bg-violet-900/40 px-2 py-0.5 text-xs font-medium text-violet-700 dark:text-violet-300">
+                        🎓 {acc.scholarship_name || t('Beca')}
+                      </span>
+                    )}
+                  </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     {acc.bank_name || t('Sin banco')} • {acc.type} • {acc.currency}
                   </p>
@@ -120,10 +133,10 @@ export function AccountsPage() {
         </div>
       )}
 
-      {!profile?.is_premium && accounts.length >= 2 && (
+      {!profile?.is_premium && accountLimit !== Infinity && accounts.length >= accountLimit && (
         <Card className="mt-4 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
           <p className="text-sm text-amber-800 dark:text-amber-200">
-            {t('Plan gratis: máximo 2 cuentas. Actualiza a Premium para agregar más.')}
+            {t('Plan gratis: máximo {{n}} cuentas. Actualiza a Premium para agregar más.', { n: accountLimit })}
           </p>
         </Card>
       )}

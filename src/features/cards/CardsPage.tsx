@@ -3,11 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useCards, useCardUsage, useDeleteCard } from '@/hooks/useCards'
 import { useAccounts } from '@/hooks/useAccounts'
+import { useEntitlements } from '@/hooks/useAppConfig'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { PremiumGate } from '@/components/ui/PremiumGate'
 import { CardForm } from './CardForm'
+import { CardVisual } from './CardVisual'
 import { formatMoney } from '@/lib/format'
 
 export function CardsPage() {
@@ -20,6 +22,7 @@ export function CardsPage() {
   const accountsQuery = useAccounts(userId)
   const cardUsageQuery = useCardUsage(userId)
   const deleteCard = useDeleteCard()
+  const { cardLimit } = useEntitlements()
 
   const cards = cardsQuery.data || []
   const accounts = accountsQuery.data || []
@@ -41,7 +44,11 @@ export function CardsPage() {
         title={t('Tarjetas')}
         subtitle={t('Tarjetas de crédito y débito con límite, uso y fechas.')}
         actions={
-          <PremiumGate count={cards.length} limit={2}>
+          <PremiumGate
+            count={cards.length}
+            limit={cardLimit}
+            lockedTooltip={t('Plan gratis: máximo {{n}} tarjetas. Actualiza a Premium para agregar más.', { n: cardLimit })}
+          >
             <Button onClick={() => setShowForm(!showForm)}>
               {showForm ? t('Cancelar') : t('+ Agregar tarjeta')}
             </Button>
@@ -63,77 +70,50 @@ export function CardsPage() {
           </p>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-6 sm:grid-cols-2">
           {cards.map((card) => {
             const usage = getCardUsage(card.id)
             const account = accounts.find((a) => a.id === card.account_id)
 
             return (
-              <Card
-                key={card.id}
-                className={`${
-                  card.type === 'credit'
-                    ? 'border-l-4 border-l-blue-500'
-                    : 'border-l-4 border-l-green-500'
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-slate-800 dark:text-slate-100">{card.name}</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {card.brand || t('Sin marca')} • {card.type === 'credit' ? t('💳 Crédito') : t('💰 Débito')} • {card.currency}
-                    </p>
-                    {card.type === 'debit' && account && (
-                      <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-                        {t('Ligada a:')} {account.name}
-                      </p>
-                    )}
-                    {card.type === 'credit' && card.cut_day && card.payment_day && (
-                      <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-                        📅 {t('Corte:')} {card.cut_day} | {t('Pago:')} {card.payment_day}
-                      </p>
-                    )}
-                  </div>
+              <div key={card.id} className="flex flex-col gap-3">
+                <CardVisual card={card} />
 
-                  {card.type === 'credit' && usage && (
-                    <div className="text-right">
-                      <div className="mb-2">
-                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('Usado')}</p>
-                        <p className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-                          {formatMoney(usage.used, card.currency)}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">{t('Límite')}</p>
-                          <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                            {formatMoney(usage.credit_limit || 0, card.currency)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">{t('Disponible')}</p>
-                          <p className="text-sm font-medium text-green-600">
-                            {formatMoney(usage.available, card.currency)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
+                  <span>{card.brand || t('Sin marca')}</span>
+                  <span>· {card.currency}</span>
                   {card.type === 'debit' && account && (
-                    <div className="text-right">
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{t('Saldo')}</p>
-                      <p className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-                        {formatMoney(account.initial_balance, card.currency)}
-                      </p>
-                    </div>
+                    <span>· {t('Ligada a:')} {account.name}</span>
+                  )}
+                  {card.type === 'credit' && card.cut_day && card.payment_day && (
+                    <span>· 📅 {t('Corte:')} {card.cut_day} | {t('Pago:')} {card.payment_day}</span>
                   )}
                 </div>
 
-                <div className="mt-3 flex gap-2">
-                  <Button variant="ghost" size="sm">
-                    {t('Editar')}
-                  </Button>
+                {card.type === 'credit' && usage && (
+                  <div className="flex gap-4 text-xs">
+                    <div>
+                      <p className="text-slate-500 dark:text-slate-400">{t('Usado')}</p>
+                      <p className="font-semibold text-slate-800 dark:text-slate-100">
+                        {formatMoney(usage.used, card.currency)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 dark:text-slate-400">{t('Límite')}</p>
+                      <p className="font-medium text-slate-700 dark:text-slate-200">
+                        {formatMoney(usage.credit_limit || 0, card.currency)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 dark:text-slate-400">{t('Disponible')}</p>
+                      <p className="font-medium text-green-600">
+                        {formatMoney(usage.available, card.currency)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
                   <Button
                     variant="danger"
                     size="sm"
@@ -143,16 +123,16 @@ export function CardsPage() {
                     {t('Eliminar')}
                   </Button>
                 </div>
-              </Card>
+              </div>
             )
           })}
         </div>
       )}
 
-      {!profile?.is_premium && cards.length >= 2 && (
+      {!profile?.is_premium && cardLimit !== Infinity && cards.length >= cardLimit && (
         <Card className="mt-4 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
           <p className="text-sm text-amber-800 dark:text-amber-200">
-            {t('Plan gratis: máximo 2 tarjetas. Actualiza a Premium para agregar más.')}
+            {t('Plan gratis: máximo {{n}} tarjetas. Actualiza a Premium para agregar más.', { n: cardLimit })}
           </p>
         </Card>
       )}

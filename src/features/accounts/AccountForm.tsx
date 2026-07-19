@@ -18,6 +18,8 @@ const schema = z.object({
   initial_balance: z.coerce.number().min(0, 'Saldo no puede ser negativo'),
   has_yield: z.boolean().default(false),
   yield_rate: z.coerce.number().optional(),
+  is_scholarship: z.boolean().default(false),
+  scholarship_name: z.string().optional(),
 })
 
 type FormData = z.infer<typeof schema>
@@ -129,6 +131,26 @@ export function AccountForm({ onSuccess }: AccountFormProps) {
               step="0.001"
               {...form.register('yield_rate')}
               error={form.formState.errors.yield_rate?.message}
+            />
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              {...form.register('is_scholarship')}
+              className="cursor-pointer"
+            />
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+              🎓 {t('Es una cuenta de beca')}
+            </span>
+          </label>
+          {form.watch('is_scholarship') && (
+            <Input
+              label={t('Nombre de la beca (opcional)')}
+              placeholder={t('Ej: Beca Benito Juárez')}
+              {...form.register('scholarship_name')}
             />
           )}
         </div>

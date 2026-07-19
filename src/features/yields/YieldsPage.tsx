@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useAccounts, useAccountBalances } from '@/hooks/useAccounts'
+import { useEntitlements } from '@/hooks/useAppConfig'
 import { activeLocale } from '@/i18n'
 import { useYieldRecords } from '@/hooks/useYields'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -12,8 +13,9 @@ import { useState } from 'react'
 
 export function YieldsPage() {
   const { t } = useTranslation()
-  const { session, profile } = useAuth()
+  const { session } = useAuth()
   const userId = session?.user?.id
+  const { canUseYields } = useEntitlements()
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null)
 
   const accountsQuery = useAccounts(userId)
@@ -27,7 +29,7 @@ export function YieldsPage() {
   // Filtrar solo cuentas con rendimiento
   const accountsWithYield = accounts.filter((a) => a.has_yield)
 
-  if (!profile?.is_premium) {
+  if (!canUseYields) {
     return (
       <>
         <PageHeader

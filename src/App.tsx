@@ -4,6 +4,7 @@ import { useAuth } from '@/store/useAuth'
 import { AppShell } from '@/components/layout/AppShell'
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute'
 import { LoginPage } from '@/features/auth/LoginPage'
+import { LandingPage } from '@/features/landing/LandingPage'
 import { DashboardPage } from '@/features/reports/DashboardPage'
 import { AccountsPage } from '@/features/accounts/AccountsPage'
 import { CardsPage } from '@/features/cards/CardsPage'
@@ -19,6 +20,9 @@ import { CategoriesPage } from '@/features/categories/CategoriesPage'
 import { YieldsPage } from '@/features/yields/YieldsPage'
 import { ReportsPage } from '@/features/reports/ReportsPage'
 import { AdminPage } from '@/features/admin/AdminPage'
+import { WebUpdatePrompt } from '@/components/WebUpdatePrompt'
+import { NativeUpdatePrompt } from '@/components/NativeUpdatePrompt'
+import { isNative } from '@/lib/nativeAuth'
 
 export default function App() {
   const init = useAuth((s) => s.init)
@@ -28,7 +32,10 @@ export default function App() {
   }, [init])
 
   return (
+    <>
+      {isNative() ? <NativeUpdatePrompt /> : <WebUpdatePrompt />}
     <Routes>
+      <Route path="/bienvenida" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route
         element={
@@ -55,5 +62,6 @@ export default function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   )
 }

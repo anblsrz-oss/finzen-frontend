@@ -65,3 +65,31 @@ export function useSetUserPremium() {
     },
   })
 }
+
+export function useSetUserAdmin() {
+  return useMutation({
+    mutationFn: async ({ userId, isAdmin }: { userId: string; isAdmin: boolean }) => {
+      const { data } = await supabase.auth.getSession()
+      if (!data.session) throw new Error('No session')
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/set-admin`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${data.session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId, isAdmin }),
+        },
+      )
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to set admin')
+      }
+
+      return response.json()
+    },
+  })
+}

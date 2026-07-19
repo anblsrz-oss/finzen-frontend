@@ -75,6 +75,8 @@ export function useCreateTransaction() {
       kind: TxKind
       amount: number
       currency: string
+      fxRate?: number
+      baseAmount?: number
       concept?: string
       categoryId?: string
       accountId?: string
@@ -93,6 +95,11 @@ export function useCreateTransaction() {
         currency: input.currency,
         tx_date: input.txDate,
       }
+
+      // Multimoneda: monto convertido a la moneda principal. Si no viene, el
+      // trigger fill_tx_base_amount cae a fx=1 / base=amount.
+      if (input.fxRate !== undefined) txData.fx_rate = input.fxRate
+      if (input.baseAmount !== undefined) txData.base_amount = input.baseAmount
 
       // Solo agregar campos opcionales si no están vacíos
       if (input.concept?.trim()) txData.concept = input.concept

@@ -1,9 +1,14 @@
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useCreateTransaction, useCreateInstallmentPlan } from '@/hooks/useTransactions'
+import { useFxRate } from '@/hooks/useFxRate'
+import { useEntitlements } from '@/hooks/useAppConfig'
+import { toBaseAmount } from '@/lib/fx'
+import { CURRENCIES, formatMoney } from '@/lib/format'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -50,13 +55,15 @@ export function TransactionForm({
   const { session, profile } = useAuth()
   const createTransaction = useCreateTransaction()
   const createInstallment = useCreateInstallmentPlan()
+  const { canUseInstallments } = useEntitlements()
+  const mainCurrency = profile?.main_currency ?? 'MXN'
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     mode: 'onBlur',
     defaultValues: {
       kind: 'expense',
-      currency: 'MXN',
+      currency: mainCurrency,
       txDate: new Date().toISOString().split('T')[0],
       msi: false,
       msiInterestFree: true,
@@ -65,6 +72,26 @@ export function TransactionForm({
 
   const txKind = form.watch('kind')
   const cardId = form.watch('cardId')
+  const currency = form.watch('currency')
+  const amountRaw = form.watch('amount')
+
+  // Multimoneda: cuando la moneda del movimiento difiere de la principal, se
+  // obtiene el tipo de cambio (editable) para convertir a la moneda principal.
+  const needsFx = !!currency && currency !== mainCurrency
+  const fxQuery = useFxRate(currency, mainCurrency, needsFx)
+  const [rateInput, setRateInput] = useState('')
+
+  useEffect(() => {
+    if (!needsFx) {
+      setRateInput('')
+    } else if (fxQuery.data?.rate) {
+      setRateInput(String(fxQuery.data.rate))
+    }
+  }, [needsFx, fxQuery.data?.rate])
+
+  const effectiveRate = needsFx ? Number(rateInput) || 0 : 1
+  const amountNum = Number(amountRaw) || 0
+  const basePreview = needsFx ? toBaseAmount(amountNum, effectiveRate) : amountNum
   const msi = form.watch('msi')
   const familyExpense = form.watch('familyExpense')
   const selectedCard = cards.find((c) => c.id === cardId)
@@ -110,12 +137,22 @@ export function TransactionForm({
         ? ownSharedCard.family_id
         : undefined
 
+    // Conversión a la moneda principal.
+    const fxRate = data.currency !== mainCurrency ? effectiveRate : 1
+    const baseAmount = toBaseAmount(data.amount, fxRate)
+    if (data.currency !== mainCurrency && (!fxRate || fxRate <= 0)) {
+      alert(t('Escribe un tipo de cambio válido.'))
+      return
+    }
+
     createTransaction.mutate(
       {
         userId: session.user.id,
         kind: data.kind,
         amount: data.amount,
         currency: data.currency,
+        fxRate,
+        baseAmount,
         concept: data.concept,
         categoryId: data.categoryId,
         // Un gasto familiar va solo contra la tarjeta, nunca contra una cuenta.
@@ -130,7 +167,7 @@ export function TransactionForm({
         onSuccess: async (tx) => {
           // Si es MSI/diferido (premium), crear installment_plan
           if (
-            profile?.is_premium &&
+            canUseInstallments &&
             msi &&
             isCredit &&
             !familyId &&
@@ -185,11 +222,7 @@ export function TransactionForm({
           />
           <Select
             label={t('Moneda')}
-            options={[
-              { value: 'MXN', label: 'MXN' },
-              { value: 'USD', label: 'USD' },
-              { value: 'EUR', label: 'EUR' },
-            ]}
+            options={CURRENCIES.map((c) => ({ value: c, label: c }))}
             {...form.register('currency')}
           />
           <Input
@@ -199,6 +232,38 @@ export function TransactionForm({
             error={form.formState.errors.txDate?.message}
           />
         </div>
+
+        {/* Conversión a la moneda principal (solo si difiere) */}
+        {needsFx && (
+          <div className="space-y-2 rounded-lg border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-900/20 p-3">
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label={t('Tipo de cambio ({{from}}→{{to}})', {
+                  from: currency,
+                  to: mainCurrency,
+                })}
+                type="number"
+                step="0.0001"
+                value={rateInput}
+                onChange={(e) => setRateInput(e.target.value)}
+                placeholder={fxQuery.isLoading ? t('Obteniendo…') : '0.00'}
+              />
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
+                  {t('Equivale a')}
+                </label>
+                <p className="rounded-lg bg-white dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
+                  ≈ {formatMoney(basePreview, mainCurrency)}
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-sky-700 dark:text-sky-300">
+              {fxQuery.isError
+                ? t('No se obtuvo el tipo de cambio automático. Escríbelo manualmente.')
+                : t('Puedes ajustar el tipo de cambio si lo necesitas.')}
+            </p>
+          </div>
+        )}
 
         {/* Concepto y categoría */}
         <div className="grid grid-cols-2 gap-4">
@@ -300,8 +365,8 @@ export function TransactionForm({
           </div>
         )}
 
-        {/* MSI/Diferido (solo premium, crédito, egreso; no aplica a gastos familiares) */}
-        {profile?.is_premium &&
+        {/* MSI/Diferido (configurable como premium; crédito, egreso; no aplica a gastos familiares) */}
+        {canUseInstallments &&
           txKind === 'expense' &&
           !isFamilyTx &&
           isCredit && (

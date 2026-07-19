@@ -50,6 +50,42 @@ function extractBody(payload: any): string {
   return ''
 }
 
+// Recolecta los attachmentId de las partes XML (facturas CFDI adjuntas).
+function collectXmlAttachments(payload: any, out: string[] = []): string[] {
+  if (!payload) return out
+  const mt = (payload.mimeType ?? '').toLowerCase()
+  const fn = (payload.filename ?? '').toLowerCase()
+  if (payload.body?.attachmentId && (mt.includes('xml') || fn.endsWith('.xml'))) {
+    out.push(payload.body.attachmentId)
+  }
+  if (Array.isArray(payload.parts)) {
+    for (const p of payload.parts) collectXmlAttachments(p, out)
+  }
+  return out
+}
+
+// Extrae datos de un CFDI por regex (Deno no tiene DOMParser). El XML es
+// estructurado, así que es confiable. Total="" es del Comprobante (los
+// conceptos usan Importe=""), no se confunde.
+function parseCfdiString(xml: string): {
+  amount: number | null
+  date: string | null
+  emisor: string | null
+  currency: string | null
+} {
+  const total = xml.match(/\bTotal="([\d.]+)"/)?.[1]
+  const fecha = xml.match(/\bFecha="([0-9T:\-]+)"/)?.[1]
+  const moneda = xml.match(/\bMoneda="([A-Z]{3})"/)?.[1]
+  const emisor = xml.match(/<[\w:]*Emisor\b[^>]*\bNombre="([^"]*)"/i)?.[1]
+  const amount = total ? parseFloat(total) : null
+  return {
+    amount: amount != null && Number.isFinite(amount) && amount > 0 ? amount : null,
+    date: fecha ? fecha.slice(0, 10) : null,
+    emisor: emisor ?? null,
+    currency: moneda && /^[A-Z]{3}$/.test(moneda) ? moneda : null,
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
@@ -122,6 +158,39 @@ serve(async (req) => {
       const from = (headers.find((h) => h.name === 'From')?.value ?? '').toLowerCase()
       const subject = headers.find((h) => h.name === 'Subject')?.value ?? ''
       const text = `${subject}\n${extractBody(msg.payload)}\n${msg.snippet ?? ''}`
+
+      // 2a) Factura CFDI adjunta (XML): extracción exacta, preferida sobre el
+      // regex del cuerpo. Cubre "cuando llega la factura por correo".
+      let cfdiStaged = false
+      for (const attId of collectXmlAttachments(msg.payload)) {
+        const attRes = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}/attachments/${attId}`,
+          { headers: { Authorization: `Bearer ${providerToken}` } },
+        )
+        if (!attRes.ok) continue
+        const attJson = await attRes.json()
+        if (!attJson.data) continue
+        const cfdi = parseCfdiString(decodeB64Url(attJson.data))
+        if (cfdi.amount) {
+          staged.push({
+            user_id: userId,
+            kind: 'expense',
+            amount: cfdi.amount,
+            currency: cfdi.currency ?? 'MXN',
+            concept: (cfdi.emisor ?? subject).slice(0, 200),
+            account_id: defaultAccountId,
+            tx_date:
+              cfdi.date ??
+              new Date(parseInt(msg.internalDate, 10)).toISOString().slice(0, 10),
+            source: 'email',
+            external_id: djb2(id),
+            pending: true,
+          })
+          cfdiStaged = true
+          break
+        }
+      }
+      if (cfdiStaged) continue
 
       // Elegir la regla cuyo remitente aparece en el From.
       const rule = rules.find((r: any) => {

@@ -17,6 +17,7 @@ export interface ProfileRow {
   avatar_url: string | null
   is_premium: boolean
   is_admin: boolean
+  main_currency: string
   created_at: string
 }
 
@@ -30,6 +31,8 @@ export interface AccountRow {
   initial_balance: number
   has_yield: boolean
   yield_rate: number | null
+  is_scholarship: boolean
+  scholarship_name: string | null
   created_at: string
 }
 
@@ -44,6 +47,10 @@ export interface CardRow {
   credit_limit: number | null
   cut_day: number | null
   payment_day: number | null
+  last4: string | null
+  color: string | null
+  is_scholarship: boolean
+  scholarship_name: string | null
   created_at: string
 }
 
@@ -64,6 +71,8 @@ export interface TransactionRow {
   kind: TxKind
   amount: number
   currency: string
+  fx_rate: number | null
+  base_amount: number | null
   concept: string | null
   category_id: string | null
   account_id: string | null
@@ -252,6 +261,19 @@ export interface BankConnectionRow {
   status: 'pending' | 'active' | 'error' | 'revoked'
   last_sync_at: string | null
   created_at: string
+}
+
+// Configuración global (una sola fila). Editable por admin.
+export interface AppConfigRow {
+  id: boolean
+  free_max_accounts: number
+  free_max_cards: number
+  free_max_transactions: number
+  family_is_premium: boolean
+  yields_is_premium: boolean
+  installments_is_premium: boolean
+  reports_filters_is_premium: boolean
+  updated_at: string
 }
 
 // Vistas calculadas

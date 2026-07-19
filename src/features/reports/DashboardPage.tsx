@@ -13,8 +13,9 @@ import { formatMoney } from '@/lib/format'
 
 export function DashboardPage() {
   const { t } = useTranslation()
-  const { session } = useAuth()
+  const { session, profile } = useAuth()
   const userId = session?.user?.id
+  const mainCurrency = profile?.main_currency ?? 'MXN'
 
   // Solo mes actual para Gratis
   const startDate = new Date(
@@ -49,13 +50,13 @@ export function DashboardPage() {
           <Card className="bg-gradient-to-br from-green-50 to-emerald-50">
             <p className="text-xs text-slate-600 dark:text-slate-300">{t('Total Ingresos')}</p>
             <p className="text-2xl font-semibold text-green-600">
-              {formatMoney(summary.totalIncome, 'MXN')}
+              {formatMoney(summary.totalIncome, mainCurrency)}
             </p>
           </Card>
           <Card className="bg-gradient-to-br from-red-50 to-rose-50">
             <p className="text-xs text-slate-600 dark:text-slate-300">{t('Total Egresos')}</p>
             <p className="text-2xl font-semibold text-red-600 dark:text-red-400">
-              {formatMoney(summary.totalExpense, 'MXN')}
+              {formatMoney(summary.totalExpense, mainCurrency)}
             </p>
           </Card>
           <Card
@@ -71,7 +72,7 @@ export function DashboardPage() {
                 summary.balance >= 0 ? 'text-blue-600' : 'text-orange-600'
               }`}
             >
-              {formatMoney(summary.balance, 'MXN')}
+              {formatMoney(summary.balance, mainCurrency)}
             </p>
           </Card>
         </div>

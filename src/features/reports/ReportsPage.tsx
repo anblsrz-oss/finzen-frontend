@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
+import { useEntitlements } from '@/hooks/useAppConfig'
 import {
   useTransactionsSummary,
   useMonthlyTotals,
@@ -37,6 +38,8 @@ export function ReportsPage() {
   const summary = summaryQuery.data
   const monthly = monthlyQuery.data || []
   const categories = categoryQuery.data || []
+  const mainCurrency = profile?.main_currency ?? 'MXN'
+  const { canUseReportsFilters } = useEntitlements()
 
   return (
     <>
@@ -45,8 +48,8 @@ export function ReportsPage() {
         subtitle={t('Gráficas de ingresos y gastos por período, cuenta y tarjeta.')}
       />
 
-      {/* Filtros (Premium) */}
-      {profile?.is_premium && (
+      {/* Filtros (configurable como Premium) */}
+      {canUseReportsFilters && (
         <Card className="mb-6 bg-slate-50 dark:bg-slate-900">
           <p className="mb-3 text-xs font-semibold text-slate-700 dark:text-slate-200">
             {t('Rango de fechas')}
@@ -74,13 +77,13 @@ export function ReportsPage() {
           <Card className="bg-gradient-to-br from-green-50 to-emerald-50">
             <p className="text-xs text-slate-600 dark:text-slate-300">{t('Total Ingresos')}</p>
             <p className="text-2xl font-semibold text-green-600">
-              {formatMoney(summary.totalIncome, 'MXN')}
+              {formatMoney(summary.totalIncome, mainCurrency)}
             </p>
           </Card>
           <Card className="bg-gradient-to-br from-red-50 to-rose-50">
             <p className="text-xs text-slate-600 dark:text-slate-300">{t('Total Egresos')}</p>
             <p className="text-2xl font-semibold text-red-600 dark:text-red-400">
-              {formatMoney(summary.totalExpense, 'MXN')}
+              {formatMoney(summary.totalExpense, mainCurrency)}
             </p>
           </Card>
           <Card
@@ -96,7 +99,7 @@ export function ReportsPage() {
                 summary.balance >= 0 ? 'text-blue-600' : 'text-orange-600'
               }`}
             >
-              {formatMoney(summary.balance, 'MXN')}
+              {formatMoney(summary.balance, mainCurrency)}
             </p>
           </Card>
         </div>
@@ -131,7 +134,7 @@ export function ReportsPage() {
         )}
       </div>
 
-      {!profile?.is_premium && (
+      {!canUseReportsFilters && (
         <Card className="mt-6 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
           <p className="text-sm text-amber-800 dark:text-amber-200">
             📊 {t('Premium: filtra por rango de fechas personalizado, cuenta o tarjeta. Actualiza tu plan para más análisis.')}

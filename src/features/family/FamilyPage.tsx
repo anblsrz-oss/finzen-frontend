@@ -8,6 +8,7 @@ import {
   useInviteMember,
   useRespondInvitation,
   useRemoveMember,
+  useDeleteFamily,
   useFamilyMembers,
   useFamilyCards,
   useFamilyCardUsage,
@@ -16,6 +17,7 @@ import {
   useFamilyTransactions,
 } from '@/hooks/useFamily'
 import { useCards, useCardUsage } from '@/hooks/useCards'
+import { useEntitlements } from '@/hooks/useAppConfig'
 import { formatMoney, formatDate } from '@/lib/format'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
@@ -40,6 +42,7 @@ export function FamilyPage() {
   const userId = session?.user?.id
   const email = session?.user?.email ?? profile?.email
 
+  const { canUseFamily } = useEntitlements()
   const { data: invitations = [] } = useMyInvitations(email)
   const { data: families = [], isLoading } = useMyFamilies(userId)
   const family = families[0]
@@ -104,7 +107,7 @@ export function FamilyPage() {
       {isLoading ? (
         <p className="text-sm text-slate-500 dark:text-slate-400">{t('Cargando…')}</p>
       ) : !family ? (
-        profile?.is_premium ? (
+        canUseFamily ? (
           <Card>
             <p className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">
               {t('Crear plan familiar')}
@@ -173,6 +176,7 @@ function FamilyDetail({
 
   const inviteMember = useInviteMember()
   const removeMember = useRemoveMember()
+  const deleteFamily = useDeleteFamily()
   const shareCard = useShareCard()
   const unshareCard = useUnshareCard()
 
@@ -220,7 +224,28 @@ function FamilyDetail({
           <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
             👨‍👩‍👧‍👦 {familyName} — {t('miembros')}
           </p>
-          {!isOwner && (
+          {isOwner ? (
+            <Button
+              size="sm"
+              variant="danger"
+              disabled={deleteFamily.isPending}
+              onClick={() => {
+                if (
+                  userId &&
+                  confirm(
+                    t('¿Eliminar la familia "{{name}}"? Se borrarán los gastos familiares, los miembros y las tarjetas compartidas. Esta acción no se puede deshacer.', { name: familyName }),
+                  )
+                ) {
+                  deleteFamily.mutate(
+                    { familyId, userId },
+                    { onError: (e: any) => alert(`Error: ${e.message}`) },
+                  )
+                }
+              }}
+            >
+              {deleteFamily.isPending ? t('Eliminando…') : t('Eliminar familia')}
+            </Button>
+          ) : (
             <Button size="sm" variant="ghost" onClick={handleLeave}>
               {t('Salir de la familia')}
             </Button>

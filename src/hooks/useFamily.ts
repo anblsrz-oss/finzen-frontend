@@ -139,6 +139,25 @@ export function useRespondInvitation() {
   })
 }
 
+// Elimina la familia completa (solo el dueño). Vía RPC security definer que
+// borra los gastos familiares, los miembros y las tarjetas compartidas.
+export function useDeleteFamily() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: { familyId: string; userId: string }) => {
+      const { error } = await supabase.rpc('delete_family', {
+        p_family_id: input.familyId,
+      })
+      if (error) throw error
+    },
+    onSuccess: (_data, input) => {
+      queryClient.invalidateQueries({ queryKey: ['families', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['families'] })
+      queryClient.invalidateQueries({ queryKey: ['family_invitations'] })
+    },
+  })
+}
+
 export function useRemoveMember() {
   const queryClient = useQueryClient()
   return useMutation({

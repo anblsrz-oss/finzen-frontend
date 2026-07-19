@@ -32,6 +32,10 @@ export function useCreateCard() {
       credit_limit?: number
       cut_day?: number
       payment_day?: number
+      last4?: string
+      color?: string
+      is_scholarship?: boolean
+      scholarship_name?: string
     }) => {
       const cardData: Record<string, any> = {
         user_id: input.userId,
@@ -40,6 +44,10 @@ export function useCreateCard() {
         type: input.type,
         currency: input.currency,
         account_id: input.account_id,
+        last4: input.last4 || null,
+        color: input.color || null,
+        is_scholarship: input.is_scholarship ?? false,
+        scholarship_name: input.scholarship_name || null,
       }
 
       // Solo agregar campos de crédito si es tarjeta de crédito

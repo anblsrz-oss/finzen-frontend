@@ -20,7 +20,9 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   }
 
   if (!session) {
-    return <Navigate to="/login" replace />
+    // Sin sesión: mostrar la landing pública (que a su vez tiene los accesos a
+    // iniciar sesión / crear cuenta).
+    return <Navigate to="/bienvenida" replace />
   }
 
   return <>{children}</>

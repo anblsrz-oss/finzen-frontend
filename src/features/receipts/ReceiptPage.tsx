@@ -12,6 +12,10 @@ import { useCreateTransaction } from '@/hooks/useTransactions'
 import { parseReceiptText } from '@/lib/receiptParser'
 import { hashRow } from '@/lib/importParser'
 import { extractFromPdf } from '@/lib/pdfExtract'
+import { useFxRate } from '@/hooks/useFxRate'
+import { toBaseAmount } from '@/lib/fx'
+import { CURRENCIES, formatMoney } from '@/lib/format'
+import { parseCfdiXml, isCfdiXml } from '@/lib/cfdiParser'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -50,8 +54,9 @@ async function downscaleImage(file: File, maxSide = 1600): Promise<Blob> {
 
 export function ReceiptPage() {
   const { t } = useTranslation()
-  const { session } = useAuth()
+  const { session, profile } = useAuth()
   const userId = session?.user?.id
+  const mainCurrency = profile?.main_currency ?? 'MXN'
   const { data: accounts = [] } = useAccounts(userId)
   const { data: cards = [] } = useCards(userId)
   const { data: categories = [] } = useCategories(userId)
@@ -68,20 +73,69 @@ export function ReceiptPage() {
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      currency: 'MXN',
+      currency: mainCurrency,
       txDate: new Date().toISOString().split('T')[0],
     },
   })
 
+  const currency = form.watch('currency')
+  const amountRaw = form.watch('amount')
+  const needsFx = !!currency && currency !== mainCurrency
+  const fxQuery = useFxRate(currency, mainCurrency, needsFx)
+  const fxRate = needsFx ? fxQuery.data?.rate ?? 0 : 1
+  const basePreview = toBaseAmount(Number(amountRaw) || 0, fxRate)
+
   async function handleFile(file: File) {
     fileRef.current = file
     setErrorMsg(null)
-    if (file.type === 'application/pdf') {
+    const isXml =
+      file.type.includes('xml') || file.name.toLowerCase().endsWith('.xml')
+    if (isXml) {
+      await runXmlExtraction(file)
+    } else if (file.type === 'application/pdf') {
       await runPdfExtraction(file)
     } else {
       if (previewUrl) URL.revokeObjectURL(previewUrl)
       setPreviewUrl(URL.createObjectURL(file))
       await runOcr(file)
+    }
+  }
+
+  // Factura CFDI (XML): extracción exacta de los atributos, sin OCR.
+  async function runXmlExtraction(file: File) {
+    setStep('ocr')
+    setProgress(1)
+    try {
+      const text = await file.text()
+      if (!isCfdiXml(text)) {
+        setErrorMsg(t('El XML no parece una factura CFDI (SAT). Verifica el archivo.'))
+        setStep('capture')
+        return
+      }
+      const cfdi = parseCfdiXml(text)
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+      setPreviewUrl(null)
+      setRawText(
+        `Emisor: ${cfdi.merchant ?? '—'}\nRFC: ${cfdi.rfc ?? '—'}\n` +
+          `Total: ${cfdi.amount ?? '—'} ${cfdi.currency ?? ''}\nFecha: ${cfdi.txDate ?? '—'}`,
+      )
+      form.reset({
+        amount: (cfdi.amount ?? undefined) as number | undefined,
+        currency: cfdi.currency ?? mainCurrency,
+        txDate: cfdi.txDate ?? new Date().toISOString().split('T')[0],
+        concept: cfdi.concept ?? cfdi.merchant ?? '',
+        categoryId: '',
+        accountId: '',
+        cardId: '',
+      })
+      setStep('review')
+    } catch (err: any) {
+      setErrorMsg(
+        t('No se pudo leer el XML: {{error}}.', {
+          error: err?.message ?? t('error desconocido'),
+        }),
+      )
+      setStep('capture')
     }
   }
 
@@ -92,7 +146,7 @@ export function ReceiptPage() {
     const extracted = parseReceiptText(text)
     form.reset({
       amount: (extracted.amount ?? undefined) as number | undefined,
-      currency: 'MXN',
+      currency: mainCurrency,
       txDate: extracted.txDate ?? new Date().toISOString().split('T')[0],
       concept: extracted.merchant ?? '',
       categoryId: '',
@@ -156,12 +210,19 @@ export function ReceiptPage() {
       alert(t('Selecciona una cuenta o tarjeta'))
       return
     }
+    const rate = data.currency !== mainCurrency ? fxRate : 1
+    if (data.currency !== mainCurrency && (!rate || rate <= 0)) {
+      alert(t('No se obtuvo el tipo de cambio. Intenta de nuevo o registra el gasto desde Transacciones.'))
+      return
+    }
     createTransaction.mutate(
       {
         userId,
         kind: 'expense',
         amount: data.amount,
         currency: data.currency,
+        fxRate: rate,
+        baseAmount: toBaseAmount(data.amount, rate),
         concept: data.concept,
         categoryId: data.categoryId,
         accountId: data.accountId,
@@ -191,7 +252,7 @@ export function ReceiptPage() {
     setErrorMsg(null)
     fileRef.current = null
     form.reset({
-      currency: 'MXN',
+      currency: mainCurrency,
       txDate: new Date().toISOString().split('T')[0],
     })
     setStep('capture')
@@ -216,7 +277,7 @@ export function ReceiptPage() {
           <div className="flex flex-col items-center gap-4 py-6">
             <span className="text-5xl">🧾</span>
             <p className="text-center text-sm text-slate-600 dark:text-slate-300">
-              {t('Fotografía el ticket con buena luz y lo más plano posible, o sube un PDF de tu factura/recibo. Después podrás revisar y corregir los datos detectados.')}
+              {t('Fotografía el ticket con buena luz y lo más plano posible, o sube un PDF o XML (factura CFDI) de tu recibo. Después podrás revisar y corregir los datos detectados.')}
             </p>
             <label className="cursor-pointer">
               <span className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-brand-700">
@@ -235,10 +296,10 @@ export function ReceiptPage() {
               />
             </label>
             <label className="cursor-pointer text-sm text-brand-700 dark:text-brand-500 underline">
-              {t('o subir una imagen o PDF existente')}
+              {t('o subir una imagen, PDF o XML (factura)')}
               <input
                 type="file"
-                accept="image/*,application/pdf"
+                accept="image/*,application/pdf,text/xml,application/xml,.xml"
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0]
@@ -290,14 +351,22 @@ export function ReceiptPage() {
                 />
                 <Select
                   label={t('Moneda')}
-                  options={[
-                    { value: 'MXN', label: 'MXN' },
-                    { value: 'USD', label: 'USD' },
-                    { value: 'EUR', label: 'EUR' },
-                  ]}
+                  options={CURRENCIES.map((c) => ({ value: c, label: c }))}
                   {...form.register('currency')}
                 />
               </div>
+              {needsFx && (
+                <p className="rounded-lg bg-sky-50 dark:bg-sky-900/20 p-2 text-xs text-sky-700 dark:text-sky-300">
+                  {fxQuery.isLoading
+                    ? t('Obteniendo tipo de cambio…')
+                    : fxRate > 0
+                      ? t('≈ {{base}} en tu moneda principal (tipo de cambio {{rate}}).', {
+                          base: formatMoney(basePreview, mainCurrency),
+                          rate: fxRate,
+                        })
+                      : t('No se obtuvo el tipo de cambio. Registra el gasto desde Transacciones para ajustarlo.')}
+                </p>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <Input
                   label={t('Fecha')}
