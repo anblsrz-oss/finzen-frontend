@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.2.0",
   "apkUrl": "https://github.com/anblsrz-oss/finzen-frontend/releases/latest/download/finzen.apk",
-  "notes": "Versión inicial descargable."
+  "notes": "Edición de cuentas y tarjetas, ocultar montos, edición de categorías con emoji y color, cashback en tarjetas de crédito, gráficos configurables, exportar reportes a Excel y colores de la app configurables."
 }
