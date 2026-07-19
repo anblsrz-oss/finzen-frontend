@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import {
@@ -27,6 +27,14 @@ export function CategoriesPage() {
   const [kind, setKind] = useState<'income' | 'expense'>('expense')
   const [icon, setIcon] = useState('')
   const [color, setColor] = useState('')
+  const formRef = useRef<HTMLDivElement>(null)
+
+  // En móvil el formulario queda fuera de pantalla: hay que desplazarse a él.
+  useEffect(() => {
+    if (editingId) {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [editingId])
 
   const categoriesQuery = useCategories(userId)
   const createCategory = useCreateCategory()
@@ -104,6 +112,7 @@ export function CategoriesPage() {
       />
 
       {showForm && (
+        <div ref={formRef} className="scroll-mt-4">
         <Card className="mb-6 bg-slate-50 dark:bg-slate-900">
           <div className="space-y-3">
             <Input
@@ -134,6 +143,7 @@ export function CategoriesPage() {
             </Button>
           </div>
         </Card>
+        </div>
       )}
 
       <div className="space-y-6">

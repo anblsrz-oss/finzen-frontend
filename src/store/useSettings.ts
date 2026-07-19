@@ -18,12 +18,16 @@ interface SettingsState {
   incomeExpenseChartType: IncomeExpenseChartType
   categoryChartType: CategoryChartType
   chartPalette: string
+  // Colores personalizados que el usuario ha creado para sus tarjetas.
+  savedCardColors: string[]
   setTheme: (theme: ThemePref) => void
   setLanguage: (language: LanguagePref) => void
   toggleHideAmounts: () => void
   setIncomeExpenseChartType: (type: IncomeExpenseChartType) => void
   setCategoryChartType: (type: CategoryChartType) => void
   setChartPalette: (palette: string) => void
+  addSavedCardColor: (hex: string) => void
+  removeSavedCardColor: (hex: string) => void
 }
 
 const systemDarkQuery = () => window.matchMedia('(prefers-color-scheme: dark)')
@@ -51,6 +55,7 @@ export const useSettings = create<SettingsState>()(
       categoryChartType: 'pie',
       // 'categoria' = usar el color propio de cada categoría.
       chartPalette: 'categoria',
+      savedCardColors: [],
       setTheme: (theme) => {
         set({ theme })
         applyTheme(theme)
@@ -60,6 +65,17 @@ export const useSettings = create<SettingsState>()(
       setIncomeExpenseChartType: (incomeExpenseChartType) => set({ incomeExpenseChartType }),
       setCategoryChartType: (categoryChartType) => set({ categoryChartType }),
       setChartPalette: (chartPalette) => set({ chartPalette }),
+      addSavedCardColor: (hex) =>
+        set((s) => {
+          const v = hex.toLowerCase()
+          if (s.savedCardColors.includes(v)) return s
+          // Se guardan los más recientes primero, con un tope razonable.
+          return { savedCardColors: [v, ...s.savedCardColors].slice(0, 24) }
+        }),
+      removeSavedCardColor: (hex) =>
+        set((s) => ({
+          savedCardColors: s.savedCardColors.filter((c) => c !== hex.toLowerCase()),
+        })),
     }),
     { name: 'finzen-settings' },
   ),

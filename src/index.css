@@ -45,3 +45,15 @@ body {
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* Espacio inferior del contenido en móvil: la barra de navegación es fija, así
+   que el último elemento quedaba tapado. Se suma el área segura (gesture bar /
+   home indicator), que en algunos teléfonos excede un padding fijo. */
+.pb-nav {
+  padding-bottom: calc(7rem + env(safe-area-inset-bottom));
+}
+@media (min-width: 768px) {
+  .pb-nav {
+    padding-bottom: 1.5rem;
+  }
+}

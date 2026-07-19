@@ -1,6 +1,8 @@
+import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CardRow } from '@/types/db'
 import { CardNetworkLogo } from './CardNetworkLogo'
+import { isHexColor, isLightColor, darken } from '@/lib/colorUtils'
 
 // Gradientes disponibles para las tarjetas (clave guardada en cards.color).
 // Paleta amplia tipo Word: se recorren los tonos para poder elegir con detalle.
@@ -34,7 +36,13 @@ export const CARD_GRADIENTS: Record<string, string> = {
   zinc: 'from-zinc-600 to-zinc-900',
   stone: 'from-stone-600 to-stone-900',
   black: 'from-neutral-800 to-black',
+  // Claros (llevan texto oscuro, ver LIGHT_GRADIENT_KEYS)
+  white: 'from-white to-slate-200',
+  silver: 'from-slate-200 to-slate-400',
 }
+
+// Gradientes claros: encima de ellos el texto blanco no se leería.
+const LIGHT_GRADIENT_KEYS = new Set(['white', 'silver'])
 
 export const CARD_GRADIENT_KEYS = Object.keys(CARD_GRADIENTS)
 
@@ -56,6 +64,35 @@ export function gradientClass(card: Pick<CardRow, 'color' | 'brand'>): string {
   return CARD_GRADIENTS[key]
 }
 
+// Fondo de la tarjeta. `cards.color` guarda o bien una clave de gradiente
+// ('blue', 'white'…) o bien un color personalizado en hex ('#ff8800'), del que
+// se deriva un degradado. El texto se aclara u oscurece según el fondo para
+// que siempre se lea.
+export function cardSurface(card: Pick<CardRow, 'color' | 'brand'>): {
+  className: string
+  style?: CSSProperties
+  light: boolean
+} {
+  if (isHexColor(card.color ?? '')) {
+    const hex = card.color!.trim()
+    return {
+      className: '',
+      style: {
+        backgroundImage: `linear-gradient(to bottom right, ${hex}, ${darken(hex, 0.35)})`,
+      },
+      light: isLightColor(hex),
+    }
+  }
+  const key =
+    card.color && CARD_GRADIENTS[card.color]
+      ? card.color
+      : defaultGradientKey(card.brand)
+  return {
+    className: `bg-gradient-to-br ${CARD_GRADIENTS[key]}`,
+    light: LIGHT_GRADIENT_KEYS.has(key),
+  }
+}
+
 interface CardVisualProps {
   card: CardRow
 }
@@ -64,23 +101,34 @@ interface CardVisualProps {
 // nombre, marca y tipo.
 export function CardVisual({ card }: CardVisualProps) {
   const { t } = useTranslation()
+  const surface = cardSurface(card)
+  // Sobre fondos claros el texto blanco no se lee: se usa oscuro.
+  const textClass = surface.light ? 'text-slate-900' : 'text-white'
+  const overlay = surface.light ? 'bg-black/5' : 'bg-white/10'
+  const badgeBg = surface.light ? 'bg-black/10' : 'bg-white/20'
+
   return (
     <div
-      className={`relative aspect-[16/10] w-full max-w-sm overflow-hidden rounded-2xl bg-gradient-to-br ${gradientClass(
-        card,
-      )} p-5 text-white shadow-xl`}
+      className={`relative aspect-[16/10] w-full max-w-sm overflow-hidden rounded-2xl ${surface.className} p-5 ${textClass} shadow-xl`}
+      style={surface.style}
     >
       {/* Brillo/arte decorativo: reflejos diagonales y círculos suaves */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/15" />
-      <div className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/10" />
-      <div className="pointer-events-none absolute -bottom-12 -left-6 h-32 w-32 rounded-full bg-white/5" />
+      <div
+        className={`pointer-events-none absolute inset-0 ${
+          surface.light
+            ? 'bg-gradient-to-tr from-black/0 via-black/[0.03] to-black/10'
+            : 'bg-gradient-to-tr from-white/0 via-white/5 to-white/15'
+        }`}
+      />
+      <div className={`pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full ${overlay}`} />
+      <div className={`pointer-events-none absolute -bottom-12 -left-6 h-32 w-32 rounded-full ${overlay}`} />
 
       <div className="relative flex items-start justify-between">
         <div className="flex flex-col">
           <span className="text-sm font-semibold tracking-wide">{card.name}</span>
           <div className="mt-1 flex flex-wrap gap-1">
             {card.is_scholarship && (
-              <span className="inline-flex w-fit items-center rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium">
+              <span className={`inline-flex w-fit items-center rounded-full ${badgeBg} px-2 py-0.5 text-[10px] font-medium`}>
                 🎓 {card.scholarship_name || t('Beca')}
               </span>
             )}
@@ -109,7 +157,7 @@ export function CardVisual({ card }: CardVisualProps) {
         <svg viewBox="0 0 24 24" className="h-5 w-5 opacity-80" fill="none" aria-hidden>
           <path
             d="M8 6c2.5 2 2.5 10 0 12M12 4c3.5 3 3.5 13 0 16M16 2c4.5 4 4.5 16 0 20"
-            stroke="white"
+            stroke="currentColor"
             strokeWidth="1.4"
             strokeLinecap="round"
           />

@@ -150,8 +150,8 @@ export function AppShell() {
           </div>
         </header>
 
-        {/* pb extra en móvil para no quedar debajo de la barra inferior */}
-        <main className="flex-1 p-4 pb-24 md:p-6 md:pb-6">
+        {/* pb-nav deja hueco para la barra inferior fija + área segura */}
+        <main className="pb-nav flex-1 p-4 md:p-6">
           <Outlet />
         </main>
       </div>

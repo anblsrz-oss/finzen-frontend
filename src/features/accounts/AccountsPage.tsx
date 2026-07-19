@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useQuery } from '@tanstack/react-query'
@@ -19,6 +19,14 @@ export function AccountsPage() {
   const userId = session?.user?.id
   const [showForm, setShowForm] = useState(false)
   const [editingAccount, setEditingAccount] = useState<AccountRow | null>(null)
+  const formRef = useRef<HTMLDivElement>(null)
+
+  // En móvil el formulario queda fuera de pantalla: hay que desplazarse a él.
+  useEffect(() => {
+    if (editingAccount) {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [editingAccount])
 
   const accountsQuery = useAccounts(userId)
   const deleteAccount = useDeleteAccount()
@@ -84,11 +92,13 @@ export function AccountsPage() {
       )}
 
       {editingAccount && (
-        <AccountForm
-          account={editingAccount}
-          onSuccess={() => setEditingAccount(null)}
-          onCancel={() => setEditingAccount(null)}
-        />
+        <div ref={formRef} className="scroll-mt-4">
+          <AccountForm
+            account={editingAccount}
+            onSuccess={() => setEditingAccount(null)}
+            onCancel={() => setEditingAccount(null)}
+          />
+        </div>
       )}
 
       {accounts.length === 0 ? (

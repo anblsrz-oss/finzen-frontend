@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useCards, useCardUsage, useDeleteCard } from '@/hooks/useCards'
@@ -19,6 +19,15 @@ export function CardsPage() {
   const userId = session?.user?.id
   const [showForm, setShowForm] = useState(false)
   const [editingCard, setEditingCard] = useState<CardRow | null>(null)
+  const formRef = useRef<HTMLDivElement>(null)
+
+  // El formulario se renderiza arriba de la lista: en móvil hay que llevar al
+  // usuario hasta él, si no parece que el botón "Editar" no hizo nada.
+  useEffect(() => {
+    if (editingCard) {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [editingCard])
 
   const cardsQuery = useCards(userId)
   const accountsQuery = useAccounts(userId)
@@ -71,12 +80,14 @@ export function CardsPage() {
       )}
 
       {editingCard && (
-        <CardForm
-          accounts={accounts}
-          card={editingCard}
-          onSuccess={() => setEditingCard(null)}
-          onCancel={() => setEditingCard(null)}
-        />
+        <div ref={formRef} className="scroll-mt-4">
+          <CardForm
+            accounts={accounts}
+            card={editingCard}
+            onSuccess={() => setEditingCard(null)}
+            onCancel={() => setEditingCard(null)}
+          />
+        </div>
       )}
 
       {cards.length === 0 ? (

@@ -3,6 +3,8 @@
 // separadas para :root (claro) y :root.dark (oscuro), de modo que el cambio de
 // tema (incluido 'system') funciona sin tener que reaplicar desde JS.
 
+import { parseHex, mix, triplet, WHITE, BLACK } from './colorUtils'
+
 export interface ThemeColors {
   // Color de acento (marca). De aquí se deriva toda la rampa brand-*.
   brand: string
@@ -15,37 +17,6 @@ export const DEFAULT_THEME_COLORS: ThemeColors = {
   brand: '#0d9488',
   light: { bg: '#f8fafc', surface: '#ffffff' },
   dark: { bg: '#0f172a', surface: '#1e293b' },
-}
-
-function clamp(n: number): number {
-  return Math.max(0, Math.min(255, Math.round(n)))
-}
-
-function parseHex(hex: string): [number, number, number] {
-  const h = hex.replace('#', '').trim()
-  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h
-  const r = parseInt(full.slice(0, 2), 16)
-  const g = parseInt(full.slice(2, 4), 16)
-  const b = parseInt(full.slice(4, 6), 16)
-  if ([r, g, b].some((v) => Number.isNaN(v))) return [13, 148, 136] // teal fallback
-  return [r, g, b]
-}
-
-// Mezcla el color base hacia otro (blanco o negro) según ratio (0..1).
-function mix(base: [number, number, number], toward: [number, number, number], ratio: number): [number, number, number] {
-  return [
-    clamp(base[0] + (toward[0] - base[0]) * ratio),
-    clamp(base[1] + (toward[1] - base[1]) * ratio),
-    clamp(base[2] + (toward[2] - base[2]) * ratio),
-  ]
-}
-
-const WHITE: [number, number, number] = [255, 255, 255]
-const BLACK: [number, number, number] = [0, 0, 0]
-
-// "r g b" para usar dentro de rgb(var(--x) / <alpha>).
-function triplet(rgb: [number, number, number]): string {
-  return `${rgb[0]} ${rgb[1]} ${rgb[2]}`
 }
 
 // Deriva la rampa brand (50,100,500,600,700,800) desde un color de acento.

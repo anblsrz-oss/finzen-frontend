@@ -38,7 +38,7 @@ export function CardNetworkLogo({ brand, className = 'h-8' }: CardNetworkLogoPro
   if (network === 'visa') {
     return (
       <span
-        className={`${className} inline-flex items-center font-serif text-2xl font-black italic tracking-tight text-white drop-shadow`}
+        className={`${className} inline-flex items-center font-serif text-2xl font-black italic tracking-tight drop-shadow`}
         aria-label="Visa"
       >
         VISA
@@ -60,7 +60,7 @@ export function CardNetworkLogo({ brand, className = 'h-8' }: CardNetworkLogoPro
   if (network === 'discover') {
     return (
       <span
-        className={`${className} inline-flex items-center gap-1 text-sm font-bold italic text-white`}
+        className={`${className} inline-flex items-center gap-1 text-sm font-bold italic`}
         aria-label="Discover"
       >
         DISC<span className="inline-block h-2.5 w-2.5 rounded-full bg-[#F76B1C]" />VER
@@ -72,7 +72,7 @@ export function CardNetworkLogo({ brand, className = 'h-8' }: CardNetworkLogoPro
   // si no, no mostrar nada (el icono contactless ya aparece junto al chip).
   if (brand) {
     return (
-      <span className={`${className} inline-flex items-center text-base font-bold italic text-white`}>
+      <span className={`${className} inline-flex items-center text-base font-bold italic`}>
         {brand}
       </span>
     )

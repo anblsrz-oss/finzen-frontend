@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/Card'
 import { CURRENCIES_ARRAY, CURRENCIES } from '@/lib/format'
 import { recognizeImage } from '@/lib/ocr'
 import { parseCardText } from '@/lib/cardScanParser'
-import { CARD_GRADIENTS, CARD_GRADIENT_KEYS } from './CardVisual'
+import { CardColorPicker } from './CardColorPicker'
 import type { AccountRow, CardRow } from '@/types/db'
 
 const schema = z
@@ -228,27 +228,10 @@ export function CardForm({ accounts, card, onSuccess, onCancel }: CardFormProps)
           error={form.formState.errors.last4?.message}
         />
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
-            {t('Color de la tarjeta')}
-          </label>
-          <div className="grid grid-cols-8 gap-2 rounded-lg border border-slate-300 dark:border-slate-600 p-3 sm:grid-cols-12">
-            {CARD_GRADIENT_KEYS.map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => form.setValue('color', key)}
-                title={key}
-                className={`aspect-square w-full rounded-md bg-gradient-to-br ${CARD_GRADIENTS[key]} transition-transform ${
-                  selectedColor === key
-                    ? 'ring-2 ring-brand-500 ring-offset-1 dark:ring-offset-slate-900'
-                    : 'hover:scale-110'
-                }`}
-                aria-label={key}
-              />
-            ))}
-          </div>
-        </div>
+        <CardColorPicker
+          value={selectedColor}
+          onChange={(color) => form.setValue('color', color)}
+        />
 
         <div className="grid grid-cols-3 gap-4">
           <Select

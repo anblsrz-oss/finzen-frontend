@@ -685,4 +685,13 @@ export const en: Record<string, string> = {
   'Ingreso registrado correctamente.': 'Income recorded successfully.',
   'Cuenta donde entró el dinero': 'Account the money went into',
   'Selecciona la cuenta donde entró el dinero': 'Select the account the money went into',
+
+  // Selector de color de tarjeta
+  Guardados: 'Saved',
+  'Más colores…': 'More colors…',
+  Elegir: 'Pick',
+  Hex: 'Hex',
+  'Vista previa': 'Preview',
+  'Usar y guardar': 'Use and save',
+  Quitar: 'Remove',
 }
