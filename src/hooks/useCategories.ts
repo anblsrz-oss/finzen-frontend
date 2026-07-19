@@ -59,6 +59,37 @@ export function useCreateCategory() {
   })
 }
 
+export function useUpdateCategory() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: {
+      id: string
+      userId: string
+      name?: string
+      icon?: string | null
+      color?: string | null
+    }) => {
+      const { id, userId, ...rest } = input
+      const updates: Record<string, any> = {}
+      if (rest.name !== undefined) updates.name = rest.name
+      if (rest.icon !== undefined) updates.icon = rest.icon || null
+      if (rest.color !== undefined) updates.color = rest.color || null
+
+      const { data, error } = await supabase
+        .from('categories')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: (_data, input) => {
+      queryClient.invalidateQueries({ queryKey: ['categories', input.userId] })
+    },
+  })
+}
+
 export function useDeleteCategory() {
   const queryClient = useQueryClient()
   return useMutation({
