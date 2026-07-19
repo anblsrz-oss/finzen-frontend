@@ -72,17 +72,22 @@ function parseCfdiString(xml: string): {
   date: string | null
   emisor: string | null
   currency: string | null
+  isIncome: boolean
 } {
   const total = xml.match(/\bTotal="([\d.]+)"/)?.[1]
   const fecha = xml.match(/\bFecha="([0-9T:\-]+)"/)?.[1]
   const moneda = xml.match(/\bMoneda="([A-Z]{3})"/)?.[1]
   const emisor = xml.match(/<[\w:]*Emisor\b[^>]*\bNombre="([^"]*)"/i)?.[1]
+  // TipoDeComprobante: N = nómina, que el patrón emite al trabajador. Para
+  // quien recibe el CFDI es un INGRESO, no un gasto.
+  const tipo = xml.match(/\bTipoDeComprobante="([A-Z])"/i)?.[1]
   const amount = total ? parseFloat(total) : null
   return {
     amount: amount != null && Number.isFinite(amount) && amount > 0 ? amount : null,
     date: fecha ? fecha.slice(0, 10) : null,
     emisor: emisor ?? null,
     currency: moneda && /^[A-Z]{3}$/.test(moneda) ? moneda : null,
+    isIncome: (tipo ?? '').toUpperCase() === 'N',
   }
 }
 
@@ -174,7 +179,7 @@ serve(async (req) => {
         if (cfdi.amount) {
           staged.push({
             user_id: userId,
-            kind: 'expense',
+            kind: cfdi.isIncome ? 'income' : 'expense',
             amount: cfdi.amount,
             currency: cfdi.currency ?? 'MXN',
             concept: (cfdi.emisor ?? subject).slice(0, 200),

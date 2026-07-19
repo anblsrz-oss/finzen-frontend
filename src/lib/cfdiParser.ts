@@ -9,6 +9,8 @@ export interface CfdiExtraction {
   rfc: string | null // RFC del emisor
   concept: string | null // primera descripción de concepto o el emisor
   currency: string | null // Moneda (MXN, USD…)
+  // TipoDeComprobante del SAT: I=Ingreso, E=Egreso, T=Traslado, N=Nómina, P=Pago.
+  tipo: string | null
 }
 
 const EMPTY: CfdiExtraction = {
@@ -18,6 +20,14 @@ const EMPTY: CfdiExtraction = {
   rfc: null,
   concept: null,
   currency: null,
+  tipo: null,
+}
+
+// Un CFDI de nómina (tipo "N") lo emite el patrón al trabajador: para quien
+// recibe la factura es un INGRESO. El resto (una compra, un servicio) es un
+// gasto. Sirve para preseleccionar el tipo de movimiento.
+export function cfdiIsIncome(tipo: string | null): boolean {
+  return (tipo ?? '').toUpperCase() === 'N'
 }
 
 // Busca el primer elemento por nombre local, ignorando el prefijo de namespace
@@ -60,6 +70,7 @@ export function parseCfdiXml(xml: string): CfdiExtraction {
   const total = attr(comp, 'Total', 'total')
   const fecha = attr(comp, 'Fecha', 'fecha')
   const moneda = attr(comp, 'Moneda', 'moneda')
+  const tipo = attr(comp, 'TipoDeComprobante', 'tipoDeComprobante')
 
   const emisor = firstByLocalName(doc, 'Emisor')
   const nombre = attr(emisor, 'Nombre', 'nombre')
@@ -79,5 +90,6 @@ export function parseCfdiXml(xml: string): CfdiExtraction {
     concept: desc || nombre,
     // Moneda del CFDI; si no es un ISO de 3 letras, se ignora.
     currency: moneda && /^[A-Z]{3}$/.test(moneda) ? moneda : null,
+    tipo,
   }
 }

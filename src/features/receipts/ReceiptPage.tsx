@@ -15,7 +15,7 @@ import { extractFromPdf } from '@/lib/pdfExtract'
 import { useFxRate } from '@/hooks/useFxRate'
 import { toBaseAmount } from '@/lib/fx'
 import { CURRENCIES, formatMoney } from '@/lib/format'
-import { parseCfdiXml, isCfdiXml } from '@/lib/cfdiParser'
+import { parseCfdiXml, isCfdiXml, cfdiIsIncome } from '@/lib/cfdiParser'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -23,6 +23,9 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 
 const schema = z.object({
+  // Un recibo puede ser un gasto (una compra) o un ingreso (p. ej. un CFDI
+  // de nómina, que emite el patrón al trabajador).
+  kind: z.enum(['income', 'expense']),
   amount: z.coerce.number().positive('Monto debe ser mayor a 0'),
   currency: z.string(),
   txDate: z.string().min(1, 'Fecha requerida'),
@@ -73,11 +76,14 @@ export function ReceiptPage() {
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
+      kind: 'expense',
       currency: mainCurrency,
       txDate: new Date().toISOString().split('T')[0],
     },
   })
 
+  const kind = form.watch('kind')
+  const isIncome = kind === 'income'
   const currency = form.watch('currency')
   const amountRaw = form.watch('amount')
   const needsFx = !!currency && currency !== mainCurrency
@@ -115,11 +121,15 @@ export function ReceiptPage() {
       const cfdi = parseCfdiXml(text)
       if (previewUrl) URL.revokeObjectURL(previewUrl)
       setPreviewUrl(null)
+      // Nómina (tipo "N") = ingreso para quien recibe el CFDI.
+      const income = cfdiIsIncome(cfdi.tipo)
       setRawText(
         `Emisor: ${cfdi.merchant ?? '—'}\nRFC: ${cfdi.rfc ?? '—'}\n` +
-          `Total: ${cfdi.amount ?? '—'} ${cfdi.currency ?? ''}\nFecha: ${cfdi.txDate ?? '—'}`,
+          `Total: ${cfdi.amount ?? '—'} ${cfdi.currency ?? ''}\nFecha: ${cfdi.txDate ?? '—'}\n` +
+          `Tipo: ${cfdi.tipo ?? '—'}${income ? ' (nómina → ingreso)' : ''}`,
       )
       form.reset({
+        kind: income ? 'income' : 'expense',
         amount: (cfdi.amount ?? undefined) as number | undefined,
         currency: cfdi.currency ?? mainCurrency,
         txDate: cfdi.txDate ?? new Date().toISOString().split('T')[0],
@@ -145,6 +155,9 @@ export function ReceiptPage() {
     setRawText(text)
     const extracted = parseReceiptText(text)
     form.reset({
+      // Un ticket fotografiado casi siempre es un gasto; el usuario puede
+      // cambiarlo en el formulario de revisión.
+      kind: 'expense',
       amount: (extracted.amount ?? undefined) as number | undefined,
       currency: mainCurrency,
       txDate: extracted.txDate ?? new Date().toISOString().split('T')[0],
@@ -206,7 +219,14 @@ export function ReceiptPage() {
 
   function onSubmit(data: FormData) {
     if (!userId) return
-    if (!data.accountId && !data.cardId) {
+    const income = data.kind === 'income'
+    // Un ingreso entra a una cuenta: no tiene sentido (ni lo reflejan las
+    // vistas de saldo) asignarlo a una tarjeta.
+    if (income && !data.accountId) {
+      alert(t('Selecciona la cuenta donde entró el dinero'))
+      return
+    }
+    if (!income && !data.accountId && !data.cardId) {
       alert(t('Selecciona una cuenta o tarjeta'))
       return
     }
@@ -218,7 +238,7 @@ export function ReceiptPage() {
     createTransaction.mutate(
       {
         userId,
-        kind: 'expense',
+        kind: data.kind,
         amount: data.amount,
         currency: data.currency,
         fxRate: rate,
@@ -226,10 +246,18 @@ export function ReceiptPage() {
         concept: data.concept,
         categoryId: data.categoryId,
         accountId: data.accountId,
-        cardId: data.cardId,
+        cardId: income ? undefined : data.cardId,
         txDate: data.txDate,
         source: 'receipt',
-        externalId: hashRow(['receipt', data.txDate, data.amount, data.concept]),
+        // El tipo entra en el hash: un ingreso y un gasto del mismo día e
+        // importe no deben considerarse duplicados entre sí.
+        externalId: hashRow([
+          'receipt',
+          data.kind,
+          data.txDate,
+          data.amount,
+          data.concept,
+        ]),
       },
       {
         onSuccess: () => setStep('done'),
@@ -252,19 +280,21 @@ export function ReceiptPage() {
     setErrorMsg(null)
     fileRef.current = null
     form.reset({
+      kind: 'expense',
       currency: mainCurrency,
       txDate: new Date().toISOString().split('T')[0],
     })
     setStep('capture')
   }
 
-  const expenseCategories = categories.filter((c) => c.kind === 'expense')
+  // Las categorías siguen al tipo de movimiento elegido.
+  const availableCategories = categories.filter((c) => c.kind === kind)
 
   return (
     <div>
       <PageHeader
         title={t('Escanear recibo')}
-        subtitle={t('Toma una foto del ticket y registra el gasto automáticamente')}
+        subtitle={t('Toma una foto del ticket o sube una factura y registra el movimiento automáticamente')}
       />
 
       {step === 'capture' && (
@@ -340,6 +370,21 @@ export function ReceiptPage() {
               {t('Revisa y corrige los datos')}
             </p>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <Select
+                label={t('Tipo')}
+                options={[
+                  { value: 'expense', label: `💸 ${t('Egreso')}` },
+                  { value: 'income', label: `💰 ${t('Ingreso')}` },
+                ]}
+                {...form.register('kind', {
+                  // Al cambiar de tipo, la categoría y la tarjeta anteriores
+                  // dejan de aplicar.
+                  onChange: () => {
+                    form.setValue('categoryId', '')
+                    form.setValue('cardId', '')
+                  },
+                })}
+              />
               <div className="grid grid-cols-2 gap-4">
                 <Input
                   label={t('Monto')}
@@ -378,9 +423,9 @@ export function ReceiptPage() {
                   label={t('Categoría')}
                   options={[
                     { value: '', label: t('Sin categoría') },
-                    ...expenseCategories.map((c) => ({
+                    ...availableCategories.map((c) => ({
                       value: c.id,
-                      label: `${c.icon} ${c.name}`,
+                      label: `${c.icon} ${t(c.name)}`,
                     })),
                   ]}
                   {...form.register('categoryId')}
@@ -392,27 +437,34 @@ export function ReceiptPage() {
                 {...form.register('concept')}
                 error={form.formState.errors.concept?.message}
               />
-              <div className="grid grid-cols-2 gap-4">
+              <div className={isIncome ? '' : 'grid grid-cols-2 gap-4'}>
                 <Select
-                  label={t('Cuenta')}
+                  label={isIncome ? t('Cuenta donde entró el dinero') : t('Cuenta')}
                   options={[
                     { value: '', label: t('Selecciona una cuenta') },
                     ...accounts.map((a) => ({ value: a.id, label: a.name })),
                   ]}
                   {...form.register('accountId')}
                 />
-                <Select
-                  label={t('O tarjeta')}
-                  options={[
-                    { value: '', label: t('Selecciona una tarjeta') },
-                    ...cards.map((c) => ({ value: c.id, label: c.name })),
-                  ]}
-                  {...form.register('cardId')}
-                />
+                {/* Un ingreso entra a una cuenta, no a una tarjeta. */}
+                {!isIncome && (
+                  <Select
+                    label={t('O tarjeta')}
+                    options={[
+                      { value: '', label: t('Selecciona una tarjeta') },
+                      ...cards.map((c) => ({ value: c.id, label: c.name })),
+                    ]}
+                    {...form.register('cardId')}
+                  />
+                )}
               </div>
               <div className="flex gap-2">
                 <Button type="submit" disabled={createTransaction.isPending}>
-                  {createTransaction.isPending ? t('Guardando…') : t('Registrar gasto')}
+                  {createTransaction.isPending
+                    ? t('Guardando…')
+                    : isIncome
+                      ? t('Registrar ingreso')
+                      : t('Registrar gasto')}
                 </Button>
                 <Button type="button" variant="ghost" onClick={resetAll}>
                   {t('Cancelar')}
@@ -449,7 +501,11 @@ export function ReceiptPage() {
         <Card>
           <div className="flex flex-col items-center gap-4 py-6">
             <span className="text-5xl">✅</span>
-            <p className="text-sm text-slate-700 dark:text-slate-200">{t('Gasto registrado correctamente.')}</p>
+            <p className="text-sm text-slate-700 dark:text-slate-200">
+              {isIncome
+                ? t('Ingreso registrado correctamente.')
+                : t('Gasto registrado correctamente.')}
+            </p>
             <div className="flex gap-2">
               <Button onClick={resetAll}>{t('Escanear otro')}</Button>
               <Link to="/transacciones">

@@ -677,4 +677,12 @@ export const en: Record<string, string> = {
   'Guardar colores': 'Save colors',
   Restablecer: 'Reset',
   'Categoría del sistema (editable por admin)': 'System category (admin editable)',
+
+  // Recibos — ingreso o gasto
+  'Toma una foto del ticket o sube una factura y registra el movimiento automáticamente':
+    'Take a photo of the receipt or upload an invoice and record the transaction automatically',
+  'Registrar ingreso': 'Save income',
+  'Ingreso registrado correctamente.': 'Income recorded successfully.',
+  'Cuenta donde entró el dinero': 'Account the money went into',
+  'Selecciona la cuenta donde entró el dinero': 'Select the account the money went into',
 }
