@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Browser } from '@capacitor/browser'
+import { AppLauncher } from '@capacitor/app-launcher'
 import {
   APP_VERSION,
   APK_URL,
@@ -8,6 +9,18 @@ import {
   compareVersions,
   type RemoteVersion,
 } from '@/lib/appUpdate'
+
+// Abre la descarga del APK en el navegador EXTERNO (Intent ACTION_VIEW), no en
+// la Custom Tab embebida: esa se queda en "Descargando…" para siempre porque no
+// ofrece botón "Abrir" al terminar, aunque el archivo ya esté completo.
+// Si el lanzador falla, se cae a la Custom Tab como último recurso.
+async function openApkDownload(url: string): Promise<void> {
+  try {
+    await AppLauncher.openUrl({ url })
+  } catch {
+    await Browser.open({ url })
+  }
+}
 
 // Aviso de actualización para la app nativa (APK). Consulta version.json en el
 // servidor; si hay una versión más nueva que la instalada, ofrece descargar el
@@ -51,7 +64,7 @@ export function NativeUpdatePrompt() {
           })}
         </p>
         <button
-          onClick={() => Browser.open({ url: remote!.apkUrl || APK_URL })}
+          onClick={() => void openApkDownload(remote!.apkUrl || APK_URL)}
           className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
         >
           {t('Descargar')}
