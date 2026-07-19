@@ -1,0 +1,90 @@
+name: Build Android APK
+
+# Compila, firma y publica el APK en la nube (GitHub lo hace todo; tu equipo no
+# necesita Android Studio ni el SDK).
+#
+# Disparadores:
+#  - Empujar una etiqueta vX.Y.Z  -> compila, firma y publica un Release con finzen.apk
+#  - Ejecutar manualmente (Actions -> Build Android APK -> Run workflow)
+#    -> compila y firma; el APK queda como "artifact" descargable del run
+#
+# Requiere 4 secrets del repo (Settings -> Secrets and variables -> Actions):
+#  ANDROID_KEYSTORE_BASE64      keystore en base64
+#  ANDROID_KEYSTORE_PASSWORD    contraseña del keystore
+#  ANDROID_KEY_ALIAS            alias de la llave
+#  ANDROID_KEY_PASSWORD         contraseña de la llave
+# (ver APK_BUILD.md para generarlos)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web assets
+        run: npm run build
+
+      - name: Capacitor sync (Android)
+        run: npx cap sync android
+
+      - name: Build unsigned release APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Sign APK
+        id: sign
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: android/app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          alias: ${{ secrets.ANDROID_KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: '34.0.0'
+
+      - name: Rename to finzen.apk
+        run: cp "${{ steps.sign.outputs.signedReleaseFile }}" finzen.apk
+
+      # Descargable desde el run (útil para ejecuciones manuales).
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: finzen-apk
+          path: finzen.apk
+
+      # Solo al empujar una etiqueta: publica el Release con el APK.
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: finzen.apk
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
