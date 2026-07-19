@@ -274,6 +274,8 @@ export interface AppConfigRow {
   yields_is_premium: boolean
   installments_is_premium: boolean
   reports_filters_is_premium: boolean
+  // Colores de tema personalizados (null = tema por defecto). Ver ThemeColors.
+  theme_colors: import('@/lib/themeColors').ThemeColors | null
   updated_at: string
 }
 

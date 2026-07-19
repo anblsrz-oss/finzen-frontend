@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '@/store/useAuth'
+import { useAppConfig } from '@/hooks/useAppConfig'
+import { applyThemeColors } from '@/lib/themeColors'
 import { AppShell } from '@/components/layout/AppShell'
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute'
 import { LoginPage } from '@/features/auth/LoginPage'
@@ -26,10 +28,16 @@ import { isNative } from '@/lib/nativeAuth'
 
 export default function App() {
   const init = useAuth((s) => s.init)
+  const { data: appConfig } = useAppConfig()
 
   useEffect(() => {
     void init()
   }, [init])
+
+  // Aplica los colores de tema personalizados por el admin (o los limpia si no hay).
+  useEffect(() => {
+    applyThemeColors(appConfig?.theme_colors ?? null)
+  }, [appConfig?.theme_colors])
 
   return (
     <>

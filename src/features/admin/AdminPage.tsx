@@ -10,6 +10,97 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Badge } from '@/components/ui/Badge'
 import type { AppConfigRow } from '@/types/db'
+import { DEFAULT_THEME_COLORS, applyThemeColors } from '@/lib/themeColors'
+import type { ThemeColors } from '@/lib/themeColors'
+
+// Editor de colores de tema (acento + fondos/superficies claro y oscuro).
+function ThemeEditor() {
+  const { t } = useTranslation()
+  const { data: config } = useAppConfig()
+  const updateConfig = useUpdateAppConfig()
+  const [colors, setColors] = useState<ThemeColors>(DEFAULT_THEME_COLORS)
+
+  useEffect(() => {
+    if (config) setColors(config.theme_colors ?? DEFAULT_THEME_COLORS)
+  }, [config])
+
+  // Vista previa en vivo mientras se editan los colores.
+  const update = (next: ThemeColors) => {
+    setColors(next)
+    applyThemeColors(next)
+  }
+
+  const swatch = (label: string, value: string, onChange: (v: string) => void) => (
+    <label className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2">
+      <span className="text-sm text-slate-700 dark:text-slate-200">{label}</span>
+      <input
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-8 w-12 cursor-pointer rounded border border-slate-300 dark:border-slate-600 bg-transparent"
+      />
+    </label>
+  )
+
+  return (
+    <Card className="mb-6">
+      <p className="mb-1 text-sm font-semibold text-slate-800 dark:text-slate-100">
+        🎨 {t('Colores de la app')}
+      </p>
+      <p className="mb-4 text-xs text-slate-500 dark:text-slate-400">
+        {t('Personaliza el color de acento y los fondos. Aplica a toda la web y la app.')}
+      </p>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {swatch(t('Acento (marca)'), colors.brand, (v) => update({ ...colors, brand: v }))}
+        <div />
+        {swatch(t('Fondo (claro)'), colors.light.bg, (v) =>
+          update({ ...colors, light: { ...colors.light, bg: v } }),
+        )}
+        {swatch(t('Superficie (claro)'), colors.light.surface, (v) =>
+          update({ ...colors, light: { ...colors.light, surface: v } }),
+        )}
+        {swatch(t('Fondo (oscuro)'), colors.dark.bg, (v) =>
+          update({ ...colors, dark: { ...colors.dark, bg: v } }),
+        )}
+        {swatch(t('Superficie (oscuro)'), colors.dark.surface, (v) =>
+          update({ ...colors, dark: { ...colors.dark, surface: v } }),
+        )}
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <Button
+          disabled={updateConfig.isPending}
+          onClick={() =>
+            updateConfig.mutate(
+              { theme_colors: colors },
+              { onError: (e: any) => alert(`${t('Error:')} ${e.message}`) },
+            )
+          }
+        >
+          {updateConfig.isPending ? t('Guardando…') : t('Guardar colores')}
+        </Button>
+        <Button
+          variant="ghost"
+          disabled={updateConfig.isPending}
+          onClick={() => {
+            setColors(DEFAULT_THEME_COLORS)
+            applyThemeColors(null)
+            updateConfig.mutate(
+              { theme_colors: null },
+              { onError: (e: any) => alert(`${t('Error:')} ${e.message}`) },
+            )
+          }}
+        >
+          {t('Restablecer')}
+        </Button>
+        {updateConfig.isSuccess && (
+          <span className="text-xs text-green-600 dark:text-green-400">{t('Guardado ✓')}</span>
+        )}
+      </div>
+    </Card>
+  )
+}
 
 // Editor de límites del plan gratis y de qué funciones son premium.
 function ConfigEditor() {
@@ -169,6 +260,8 @@ export function AdminPage() {
       />
 
       <ConfigEditor />
+
+      <ThemeEditor />
 
       {error && (
         <Card className="mb-6 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">

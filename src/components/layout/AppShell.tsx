@@ -71,9 +71,9 @@ export function AppShell() {
   )
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="flex min-h-screen bg-canvas">
       {/* Sidebar */}
-      <aside className="hidden w-60 flex-col border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 md:flex">
+      <aside className="hidden w-60 flex-col border-r border-slate-200 dark:border-slate-700 bg-surface md:flex">
         <div className="flex h-16 items-center gap-2 border-b border-slate-200 dark:border-slate-700 px-5">
           <span className="text-xl">💰</span>
           <span className="font-semibold text-slate-800 dark:text-slate-100">FinZen</span>
@@ -117,7 +117,7 @@ export function AppShell() {
       {/* Main */}
       <div className="flex flex-1 flex-col">
         {/* Topbar */}
-        <header className="safe-top flex items-center justify-between border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-3">
+        <header className="safe-top flex items-center justify-between border-b border-slate-200 dark:border-slate-700 bg-surface px-6 py-3">
           <div className="flex items-center gap-2 md:hidden">
             <span className="text-xl">💰</span>
             <span className="font-semibold text-slate-800 dark:text-slate-100">FinZen</span>
@@ -163,7 +163,7 @@ export function AppShell() {
           onClick={() => setMoreOpen(false)}
         >
           <div
-            className="safe-bottom fixed inset-x-0 bottom-0 z-40 rounded-t-2xl bg-white dark:bg-slate-800 p-4 pb-6 shadow-xl"
+            className="safe-bottom fixed inset-x-0 bottom-0 z-40 rounded-t-2xl bg-surface p-4 pb-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <p className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -193,7 +193,7 @@ export function AppShell() {
       )}
 
       {/* Barra de navegación inferior (solo móvil) */}
-      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 md:hidden">
+      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-slate-200 dark:border-slate-700 bg-surface md:hidden">
         {MOBILE_NAV.map((item) => (
           <NavLink
             key={item.to}

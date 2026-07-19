@@ -4,11 +4,25 @@
 
 :root {
   color-scheme: light;
+
+  /* Rampa de marca (brand-*) y superficies como variables CSS, para poder
+     personalizarlas en runtime desde el Panel Admin. Formato "r g b" para
+     combinar con la opacidad de Tailwind: rgb(var(--x) / <alpha-value>). */
+  --brand-50: 240 253 250;
+  --brand-100: 204 251 241;
+  --brand-500: 20 184 166;
+  --brand-600: 13 148 136;
+  --brand-700: 15 118 110;
+  --brand-800: 17 94 89;
+  --bg: 248 250 252; /* slate-50 */
+  --surface: 255 255 255; /* white */
 }
 
 /* El store de ajustes agrega/quita la clase `dark` en <html>. */
 :root.dark {
   color-scheme: dark;
+  --bg: 15 23 42; /* slate-900 */
+  --surface: 30 41 59; /* slate-800 */
 }
 
 html,

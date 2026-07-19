@@ -13,6 +13,7 @@ const DEFAULT_CONFIG: AppConfigRow = {
   yields_is_premium: false,
   installments_is_premium: false,
   reports_filters_is_premium: false,
+  theme_colors: null,
   updated_at: '',
 }
 
