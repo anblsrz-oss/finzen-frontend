@@ -10,8 +10,11 @@ export type LanguagePref = 'es' | 'en'
 interface SettingsState {
   theme: ThemePref
   language: LanguagePref
+  // Privacidad: oculta los montos (muestra asteriscos) en toda la app.
+  hideAmounts: boolean
   setTheme: (theme: ThemePref) => void
   setLanguage: (language: LanguagePref) => void
+  toggleHideAmounts: () => void
 }
 
 const systemDarkQuery = () => window.matchMedia('(prefers-color-scheme: dark)')
@@ -34,11 +37,13 @@ export const useSettings = create<SettingsState>()(
     (set) => ({
       theme: 'system',
       language: 'es',
+      hideAmounts: false,
       setTheme: (theme) => {
         set({ theme })
         applyTheme(theme)
       },
       setLanguage: (language) => set({ language }),
+      toggleHideAmounts: () => set((s) => ({ hideAmounts: !s.hideAmounts })),
     }),
     { name: 'finzen-settings' },
   ),

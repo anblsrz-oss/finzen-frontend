@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
+import { useSettings } from '@/store/useSettings'
 
 interface NavItem {
   to: string
@@ -51,6 +52,8 @@ const MORE_NAV: NavItem[] = [
 export function AppShell() {
   const { t } = useTranslation()
   const { profile } = useAuth()
+  const hideAmounts = useSettings((s) => s.hideAmounts)
+  const toggleHideAmounts = useSettings((s) => s.toggleHideAmounts)
   const [moreOpen, setMoreOpen] = useState(false)
   const location = useLocation()
 
@@ -128,6 +131,15 @@ export function AppShell() {
             <span className="hidden text-sm text-slate-600 dark:text-slate-300 sm:inline">
               {profile?.full_name ?? profile?.email ?? t('Usuario')}
             </span>
+            <button
+              type="button"
+              onClick={toggleHideAmounts}
+              title={hideAmounts ? t('Mostrar montos') : t('Ocultar montos')}
+              aria-label={hideAmounts ? t('Mostrar montos') : t('Ocultar montos')}
+              className="rounded-lg p-2 text-lg transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
+            >
+              {hideAmounts ? '🙈' : '👁️'}
+            </button>
             <NavLink
               to="/configuracion"
               title={t('Configuración')}

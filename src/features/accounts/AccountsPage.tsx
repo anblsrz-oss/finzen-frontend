@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { PremiumGate } from '@/components/ui/PremiumGate'
 import { AccountForm } from './AccountForm'
-import { formatMoney } from '@/lib/format'
+import { Money } from '@/components/ui/Money'
 import type { AccountRow } from '@/types/db'
 
 export function AccountsPage() {
@@ -123,7 +123,7 @@ export function AccountsPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-                    {formatMoney(balance, acc.currency)}
+                    <Money amount={balance} currency={acc.currency} />
                   </p>
                   <div className="mt-3 flex gap-2">
                     <Button

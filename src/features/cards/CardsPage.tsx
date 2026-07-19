@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/Card'
 import { PremiumGate } from '@/components/ui/PremiumGate'
 import { CardForm } from './CardForm'
 import { CardVisual } from './CardVisual'
-import { formatMoney } from '@/lib/format'
+import { Money } from '@/components/ui/Money'
 import type { CardRow } from '@/types/db'
 
 export function CardsPage() {
@@ -111,19 +111,19 @@ export function CardsPage() {
                     <div>
                       <p className="text-slate-500 dark:text-slate-400">{t('Usado')}</p>
                       <p className="font-semibold text-slate-800 dark:text-slate-100">
-                        {formatMoney(usage.used, card.currency)}
+                        <Money amount={usage.used} currency={card.currency} />
                       </p>
                     </div>
                     <div>
                       <p className="text-slate-500 dark:text-slate-400">{t('Límite')}</p>
                       <p className="font-medium text-slate-700 dark:text-slate-200">
-                        {formatMoney(usage.credit_limit || 0, card.currency)}
+                        <Money amount={usage.credit_limit || 0} currency={card.currency} />
                       </p>
                     </div>
                     <div>
                       <p className="text-slate-500 dark:text-slate-400">{t('Disponible')}</p>
                       <p className="font-medium text-green-600">
-                        {formatMoney(usage.available, card.currency)}
+                        <Money amount={usage.available} currency={card.currency} />
                       </p>
                     </div>
                   </div>

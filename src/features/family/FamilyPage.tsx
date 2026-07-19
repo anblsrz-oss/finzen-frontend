@@ -18,7 +18,8 @@ import {
 } from '@/hooks/useFamily'
 import { useCards, useCardUsage } from '@/hooks/useCards'
 import { useEntitlements } from '@/hooks/useAppConfig'
-import { formatMoney, formatDate } from '@/lib/format'
+import { formatDate } from '@/lib/format'
+import { useMoneyFormat } from '@/components/ui/Money'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -166,6 +167,7 @@ function FamilyDetail({
   const { t } = useTranslation()
   const { session } = useAuth()
   const userId = session?.user?.id
+  const formatMoney = useMoneyFormat()
 
   const { data: members = [] } = useFamilyMembers(familyId)
   const { data: familyCards = [] } = useFamilyCards(familyId)

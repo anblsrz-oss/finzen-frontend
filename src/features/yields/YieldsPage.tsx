@@ -7,12 +7,13 @@ import { useYieldRecords } from '@/hooks/useYields'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
 import { YieldForm } from './YieldForm'
-import { formatMoney } from '@/lib/format'
+import { useMoneyFormat } from '@/components/ui/Money'
 
 import { useState } from 'react'
 
 export function YieldsPage() {
   const { t } = useTranslation()
+  const formatMoney = useMoneyFormat()
   const { session } = useAuth()
   const userId = session?.user?.id
   const { canUseYields } = useEntitlements()

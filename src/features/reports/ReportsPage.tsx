@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { IncomeExpenseChart } from '@/components/charts/IncomeExpenseChart'
 import { CategoryPieChart } from '@/components/charts/CategoryPieChart'
-import { formatMoney } from '@/lib/format'
+import { Money } from '@/components/ui/Money'
 
 export function ReportsPage() {
   const { t } = useTranslation()
@@ -77,13 +77,13 @@ export function ReportsPage() {
           <Card className="bg-gradient-to-br from-green-50 to-emerald-50">
             <p className="text-xs text-slate-600 dark:text-slate-300">{t('Total Ingresos')}</p>
             <p className="text-2xl font-semibold text-green-600">
-              {formatMoney(summary.totalIncome, mainCurrency)}
+              <Money amount={summary.totalIncome} currency={mainCurrency} />
             </p>
           </Card>
           <Card className="bg-gradient-to-br from-red-50 to-rose-50">
             <p className="text-xs text-slate-600 dark:text-slate-300">{t('Total Egresos')}</p>
             <p className="text-2xl font-semibold text-red-600 dark:text-red-400">
-              {formatMoney(summary.totalExpense, mainCurrency)}
+              <Money amount={summary.totalExpense} currency={mainCurrency} />
             </p>
           </Card>
           <Card
@@ -99,7 +99,7 @@ export function ReportsPage() {
                 summary.balance >= 0 ? 'text-blue-600' : 'text-orange-600'
               }`}
             >
-              {formatMoney(summary.balance, mainCurrency)}
+              <Money amount={summary.balance} currency={mainCurrency} />
             </p>
           </Card>
         </div>

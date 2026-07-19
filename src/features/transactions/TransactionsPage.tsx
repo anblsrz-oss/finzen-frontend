@@ -18,6 +18,7 @@ import { Card } from '@/components/ui/Card'
 import { Modal } from '@/components/ui/Modal'
 import { TransactionForm } from './TransactionForm'
 import { formatMoney, formatDate } from '@/lib/format'
+import { Money } from '@/components/ui/Money'
 import type { TransactionRow } from '@/types/db'
 
 export function TransactionsPage() {
@@ -220,7 +221,7 @@ export function TransactionsPage() {
                   }`}
                 >
                   {tx.kind === 'income' ? '+' : '-'}
-                  {formatMoney(tx.amount, tx.currency)}
+                  <Money amount={tx.amount} currency={tx.currency} />
                 </p>
                 <button
                   onClick={() => openDelete(tx)}
