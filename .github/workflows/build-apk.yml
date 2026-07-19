@@ -57,6 +57,18 @@ jobs:
       - name: Capacitor sync (Android)
         run: npx cap sync android
 
+      # Cada build necesita una versión distinta y creciente para que Android
+      # (y el aviso de actualización) reconozcan un APK como más nuevo que el
+      # anterior. versionCode = número de ejecución (siempre sube);
+      # versionName = el tag sin la 'v' (vacío en ejecuciones manuales).
+      - name: Set Android version
+        run: |
+          VERSION_NAME="${GITHUB_REF_NAME#v}"
+          if [ "$GITHUB_REF_TYPE" != "tag" ]; then VERSION_NAME="0.0.0-dev.${GITHUB_RUN_NUMBER}"; fi
+          sed -i "s/versionCode 1/versionCode ${GITHUB_RUN_NUMBER}/" android/app/build.gradle
+          sed -i "s/versionName \"1.0\"/versionName \"${VERSION_NAME}\"/" android/app/build.gradle
+          echo "versionCode=${GITHUB_RUN_NUMBER} versionName=${VERSION_NAME}"
+
       - name: Build unsigned release APK
         run: |
           cd android
