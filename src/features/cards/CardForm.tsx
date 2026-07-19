@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
-import { useCreateCard } from '@/hooks/useCards'
+import { useCreateCard, useUpdateCard } from '@/hooks/useCards'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -13,7 +13,7 @@ import { CURRENCIES_ARRAY, CURRENCIES } from '@/lib/format'
 import { recognizeImage } from '@/lib/ocr'
 import { parseCardText } from '@/lib/cardScanParser'
 import { CARD_GRADIENTS, CARD_GRADIENT_KEYS } from './CardVisual'
-import type { AccountRow } from '@/types/db'
+import type { AccountRow, CardRow } from '@/types/db'
 
 const schema = z
   .object({
@@ -54,21 +54,37 @@ type FormData = z.infer<typeof schema>
 
 interface CardFormProps {
   accounts: AccountRow[]
+  card?: CardRow
   onSuccess?: () => void
+  onCancel?: () => void
 }
 
-export function CardForm({ accounts, onSuccess }: CardFormProps) {
+export function CardForm({ accounts, card, onSuccess, onCancel }: CardFormProps) {
   const { t } = useTranslation()
   const { session } = useAuth()
   const createCard = useCreateCard()
+  const updateCard = useUpdateCard()
+  const isEdit = !!card
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      type: 'credit',
-      currency: 'MXN',
+      name: card?.name ?? '',
+      brand: card?.brand ?? '',
+      type: card?.type ?? 'credit',
+      currency: (card?.currency as any) ?? 'MXN',
+      account_id: card?.account_id ?? undefined,
+      credit_limit: card?.credit_limit ?? undefined,
+      cut_day: card?.cut_day ?? undefined,
+      payment_day: card?.payment_day ?? undefined,
+      last4: card?.last4 ?? '',
+      color: card?.color ?? undefined,
+      is_scholarship: card?.is_scholarship ?? false,
+      scholarship_name: card?.scholarship_name ?? '',
     },
   })
+
+  const pending = createCard.isPending || updateCard.isPending
 
   const cardType = form.watch('type')
   const selectedColor = form.watch('color')
@@ -115,30 +131,38 @@ export function CardForm({ accounts, onSuccess }: CardFormProps) {
       alert(t('No hay sesión activa'))
       return
     }
-    createCard.mutate(
-      {
-        userId: session.user.id,
-        ...data,
-        account_id: data.account_id || null,
-        credit_limit: data.credit_limit ?? undefined,
-        cut_day: data.cut_day ?? undefined,
-        payment_day: data.payment_day ?? undefined,
-        last4: data.last4,
-        color: data.color,
-        is_scholarship: data.is_scholarship,
-        scholarship_name: data.scholarship_name,
+    const isCredit = data.type === 'credit'
+    const payload = {
+      userId: session.user.id,
+      name: data.name,
+      brand: data.brand,
+      type: data.type,
+      currency: data.currency,
+      account_id: data.account_id || null,
+      // Los campos de crédito sólo aplican a tarjetas de crédito.
+      credit_limit: isCredit ? (data.credit_limit ?? undefined) : undefined,
+      cut_day: isCredit ? (data.cut_day ?? undefined) : undefined,
+      payment_day: isCredit ? (data.payment_day ?? undefined) : undefined,
+      last4: data.last4 || null,
+      color: data.color || null,
+      is_scholarship: data.is_scholarship,
+      scholarship_name: data.is_scholarship ? data.scholarship_name || null : null,
+    }
+    const handlers = {
+      onSuccess: () => {
+        form.reset()
+        onSuccess?.()
       },
-      {
-        onSuccess: () => {
-          form.reset()
-          onSuccess?.()
-        },
-        onError: (error: any) => {
-          console.error('Error al crear tarjeta:', error)
-          alert(`Error: ${error.message || 'Error desconocido'}`)
-        },
+      onError: (error: any) => {
+        console.error('Error al guardar tarjeta:', error)
+        alert(`Error: ${error.message || 'Error desconocido'}`)
       },
-    )
+    }
+    if (isEdit) {
+      updateCard.mutate({ id: card!.id, ...payload }, handlers)
+    } else {
+      createCard.mutate(payload, handlers)
+    }
   }
 
   return (
@@ -300,12 +324,18 @@ export function CardForm({ accounts, onSuccess }: CardFormProps) {
         </div>
 
         <div className="flex gap-2">
-          <Button
-            type="submit"
-            disabled={createCard.isPending}
-          >
-            {createCard.isPending ? t('Guardando…') : t('Crear tarjeta')}
+          <Button type="submit" disabled={pending}>
+            {pending
+              ? t('Guardando…')
+              : isEdit
+                ? t('Guardar cambios')
+                : t('Crear tarjeta')}
           </Button>
+          {isEdit && onCancel && (
+            <Button type="button" variant="ghost" onClick={onCancel}>
+              {t('Cancelar')}
+            </Button>
+          )}
         </div>
       </form>
     </Card>

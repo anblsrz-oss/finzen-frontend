@@ -11,12 +11,14 @@ import { PremiumGate } from '@/components/ui/PremiumGate'
 import { CardForm } from './CardForm'
 import { CardVisual } from './CardVisual'
 import { formatMoney } from '@/lib/format'
+import type { CardRow } from '@/types/db'
 
 export function CardsPage() {
   const { t } = useTranslation()
   const { session, profile } = useAuth()
   const userId = session?.user?.id
   const [showForm, setShowForm] = useState(false)
+  const [editingCard, setEditingCard] = useState<CardRow | null>(null)
 
   const cardsQuery = useCards(userId)
   const accountsQuery = useAccounts(userId)
@@ -49,17 +51,31 @@ export function CardsPage() {
             limit={cardLimit}
             lockedTooltip={t('Plan gratis: máximo {{n}} tarjetas. Actualiza a Premium para agregar más.', { n: cardLimit })}
           >
-            <Button onClick={() => setShowForm(!showForm)}>
+            <Button
+              onClick={() => {
+                setEditingCard(null)
+                setShowForm(!showForm)
+              }}
+            >
               {showForm ? t('Cancelar') : t('+ Agregar tarjeta')}
             </Button>
           </PremiumGate>
         }
       />
 
-      {showForm && (
+      {showForm && !editingCard && (
         <CardForm
           accounts={accounts}
           onSuccess={() => setShowForm(false)}
+        />
+      )}
+
+      {editingCard && (
+        <CardForm
+          accounts={accounts}
+          card={editingCard}
+          onSuccess={() => setEditingCard(null)}
+          onCancel={() => setEditingCard(null)}
         />
       )}
 
@@ -114,6 +130,16 @@ export function CardsPage() {
                 )}
 
                 <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowForm(false)
+                      setEditingCard(card)
+                    }}
+                  >
+                    {t('Editar')}
+                  </Button>
                   <Button
                     variant="danger"
                     size="sm"

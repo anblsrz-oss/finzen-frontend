@@ -32,10 +32,10 @@ export function useCreateCard() {
       credit_limit?: number
       cut_day?: number
       payment_day?: number
-      last4?: string
-      color?: string
+      last4?: string | null
+      color?: string | null
       is_scholarship?: boolean
-      scholarship_name?: string
+      scholarship_name?: string | null
     }) => {
       const cardData: Record<string, any> = {
         user_id: input.userId,
@@ -85,6 +85,10 @@ export function useUpdateCard() {
       credit_limit?: number
       cut_day?: number
       payment_day?: number
+      last4?: string | null
+      color?: string | null
+      is_scholarship?: boolean
+      scholarship_name?: string | null
     }) => {
       const { id, userId, ...rest } = input
       const updates: Record<string, any> = {}
@@ -96,6 +100,10 @@ export function useUpdateCard() {
       if (rest.credit_limit !== undefined) updates.credit_limit = rest.credit_limit
       if (rest.cut_day !== undefined) updates.cut_day = rest.cut_day
       if (rest.payment_day !== undefined) updates.payment_day = rest.payment_day
+      if (rest.last4 !== undefined) updates.last4 = rest.last4 || null
+      if (rest.color !== undefined) updates.color = rest.color || null
+      if (rest.is_scholarship !== undefined) updates.is_scholarship = rest.is_scholarship
+      if (rest.scholarship_name !== undefined) updates.scholarship_name = rest.scholarship_name
 
       const { data, error } = await supabase
         .from('cards')
@@ -108,6 +116,7 @@ export function useUpdateCard() {
     },
     onSuccess: (_data, input) => {
       queryClient.invalidateQueries({ queryKey: ['cards', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['card_usage', input.userId] })
     },
   })
 }

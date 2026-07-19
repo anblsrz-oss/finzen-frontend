@@ -74,6 +74,8 @@ export function useUpdateAccount() {
       initial_balance?: number
       has_yield?: boolean
       yield_rate?: number
+      is_scholarship?: boolean
+      scholarship_name?: string | null
     }) => {
       const { id, userId, ...rest } = input
       const updates: Record<string, any> = {}
@@ -84,6 +86,8 @@ export function useUpdateAccount() {
       if (rest.initial_balance !== undefined) updates.initial_balance = rest.initial_balance
       if (rest.has_yield !== undefined) updates.has_yield = rest.has_yield
       if (rest.yield_rate !== undefined) updates.yield_rate = rest.yield_rate
+      if (rest.is_scholarship !== undefined) updates.is_scholarship = rest.is_scholarship
+      if (rest.scholarship_name !== undefined) updates.scholarship_name = rest.scholarship_name
 
       const { data, error } = await supabase
         .from('accounts')
@@ -96,6 +100,7 @@ export function useUpdateAccount() {
     },
     onSuccess: (_data, input) => {
       queryClient.invalidateQueries({ queryKey: ['accounts', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['account_balances', input.userId] })
     },
   })
 }

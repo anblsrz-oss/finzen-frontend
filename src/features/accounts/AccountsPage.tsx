@@ -11,12 +11,14 @@ import { Card } from '@/components/ui/Card'
 import { PremiumGate } from '@/components/ui/PremiumGate'
 import { AccountForm } from './AccountForm'
 import { formatMoney } from '@/lib/format'
+import type { AccountRow } from '@/types/db'
 
 export function AccountsPage() {
   const { t } = useTranslation()
   const { session, profile } = useAuth()
   const userId = session?.user?.id
   const [showForm, setShowForm] = useState(false)
+  const [editingAccount, setEditingAccount] = useState<AccountRow | null>(null)
 
   const accountsQuery = useAccounts(userId)
   const deleteAccount = useDeleteAccount()
@@ -65,14 +67,29 @@ export function AccountsPage() {
             limit={accountLimit}
             lockedTooltip={t('Plan gratis: máximo {{n}} cuentas. Actualiza a Premium para agregar más.', { n: accountLimit })}
           >
-            <Button onClick={() => setShowForm(!showForm)}>
+            <Button
+              onClick={() => {
+                setEditingAccount(null)
+                setShowForm(!showForm)
+              }}
+            >
               {showForm ? t('Cancelar') : t('+ Agregar cuenta')}
             </Button>
           </PremiumGate>
         }
       />
 
-      {showForm && <AccountForm onSuccess={() => setShowForm(false)} />}
+      {showForm && !editingAccount && (
+        <AccountForm onSuccess={() => setShowForm(false)} />
+      )}
+
+      {editingAccount && (
+        <AccountForm
+          account={editingAccount}
+          onSuccess={() => setEditingAccount(null)}
+          onCancel={() => setEditingAccount(null)}
+        />
+      )}
 
       {accounts.length === 0 ? (
         <Card className="border-dashed text-center">
@@ -112,8 +129,10 @@ export function AccountsPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      disabled
-                      title={t('Se implementa en Fase 3')}
+                      onClick={() => {
+                        setShowForm(false)
+                        setEditingAccount(acc)
+                      }}
                     >
                       {t('Editar')}
                     </Button>

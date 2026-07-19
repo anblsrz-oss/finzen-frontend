@@ -3,19 +3,21 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
-import { useCreateAccount } from '@/hooks/useAccounts'
+import { useCreateAccount, useUpdateAccount } from '@/hooks/useAccounts'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Card } from '@/components/ui/Card'
 import { CURRENCIES_ARRAY, CURRENCIES } from '@/lib/format'
+import type { AccountRow } from '@/types/db'
 
 const schema = z.object({
   name: z.string().min(1, 'Nombre requerido'),
   bank_name: z.string().optional(),
   type: z.enum(['checking', 'savings', 'investment', 'cash']),
   currency: z.enum(CURRENCIES_ARRAY),
-  initial_balance: z.coerce.number().min(0, 'Saldo no puede ser negativo'),
+  // En edición se permite negativo (p. ej. para corregir montos de prueba).
+  initial_balance: z.coerce.number(),
   has_yield: z.boolean().default(false),
   yield_rate: z.coerce.number().optional(),
   is_scholarship: z.boolean().default(false),
@@ -25,48 +27,64 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 interface AccountFormProps {
+  account?: AccountRow
   onSuccess?: () => void
+  onCancel?: () => void
 }
 
-export function AccountForm({ onSuccess }: AccountFormProps) {
+export function AccountForm({ account, onSuccess, onCancel }: AccountFormProps) {
   const { t } = useTranslation()
   const { session } = useAuth()
   const createAccount = useCreateAccount()
+  const updateAccount = useUpdateAccount()
+  const isEdit = !!account
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     mode: 'onBlur',
     defaultValues: {
-      name: '',
-      bank_name: '',
-      type: 'checking',
-      currency: 'MXN',
-      initial_balance: 0,
-      has_yield: false,
+      name: account?.name ?? '',
+      bank_name: account?.bank_name ?? '',
+      type: account?.type ?? 'checking',
+      currency: (account?.currency as any) ?? 'MXN',
+      initial_balance: account?.initial_balance ?? 0,
+      has_yield: account?.has_yield ?? false,
+      yield_rate: account?.yield_rate ?? undefined,
+      is_scholarship: account?.is_scholarship ?? false,
+      scholarship_name: account?.scholarship_name ?? '',
     },
   })
+
+  const pending = createAccount.isPending || updateAccount.isPending
 
   async function onSubmit(data: FormData) {
     if (!session?.user?.id) {
       alert(t('No hay sesión activa'))
       return
     }
-    createAccount.mutate(
-      {
-        userId: session.user.id,
-        ...data,
+    const handlers = {
+      onSuccess: () => {
+        form.reset()
+        onSuccess?.()
       },
-      {
-        onSuccess: () => {
-          form.reset()
-          onSuccess?.()
-        },
-        onError: (error: any) => {
-          console.error('Error al crear cuenta:', error)
-          alert(`Error: ${error.message || 'Error desconocido'}`)
-        },
+      onError: (error: any) => {
+        console.error('Error al guardar cuenta:', error)
+        alert(`Error: ${error.message || 'Error desconocido'}`)
       },
-    )
+    }
+    if (isEdit) {
+      updateAccount.mutate(
+        {
+          id: account!.id,
+          userId: session.user.id,
+          ...data,
+          scholarship_name: data.is_scholarship ? data.scholarship_name || null : null,
+        },
+        handlers,
+      )
+    } else {
+      createAccount.mutate({ userId: session.user.id, ...data }, handlers)
+    }
   }
 
   return (
@@ -156,12 +174,18 @@ export function AccountForm({ onSuccess }: AccountFormProps) {
         </div>
 
         <div className="flex gap-2">
-          <Button
-            type="submit"
-            disabled={createAccount.isPending}
-          >
-            {createAccount.isPending ? t('Guardando…') : t('Crear cuenta')}
+          <Button type="submit" disabled={pending}>
+            {pending
+              ? t('Guardando…')
+              : isEdit
+                ? t('Guardar cambios')
+                : t('Crear cuenta')}
           </Button>
+          {isEdit && onCancel && (
+            <Button type="button" variant="ghost" onClick={onCancel}>
+              {t('Cancelar')}
+            </Button>
+          )}
         </div>
       </form>
     </Card>
