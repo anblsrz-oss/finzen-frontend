@@ -34,6 +34,7 @@ export function useCreateCard() {
       payment_day?: number
       last4?: string | null
       color?: string | null
+      has_cashback?: boolean
       is_scholarship?: boolean
       scholarship_name?: string | null
     }) => {
@@ -46,6 +47,7 @@ export function useCreateCard() {
         account_id: input.account_id,
         last4: input.last4 || null,
         color: input.color || null,
+        has_cashback: input.has_cashback ?? false,
         is_scholarship: input.is_scholarship ?? false,
         scholarship_name: input.scholarship_name || null,
       }
@@ -87,6 +89,7 @@ export function useUpdateCard() {
       payment_day?: number
       last4?: string | null
       color?: string | null
+      has_cashback?: boolean
       is_scholarship?: boolean
       scholarship_name?: string | null
     }) => {
@@ -102,6 +105,7 @@ export function useUpdateCard() {
       if (rest.payment_day !== undefined) updates.payment_day = rest.payment_day
       if (rest.last4 !== undefined) updates.last4 = rest.last4 || null
       if (rest.color !== undefined) updates.color = rest.color || null
+      if (rest.has_cashback !== undefined) updates.has_cashback = rest.has_cashback
       if (rest.is_scholarship !== undefined) updates.is_scholarship = rest.is_scholarship
       if (rest.scholarship_name !== undefined) updates.scholarship_name = rest.scholarship_name
 

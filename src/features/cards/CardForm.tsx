@@ -30,6 +30,7 @@ const schema = z
       .optional()
       .refine((v) => !v || /^\d{4}$/.test(v), 'Deben ser 4 dígitos'),
     color: z.string().optional(),
+    has_cashback: z.boolean().default(false),
     is_scholarship: z.boolean().default(false),
     scholarship_name: z.string().optional(),
   })
@@ -79,6 +80,7 @@ export function CardForm({ accounts, card, onSuccess, onCancel }: CardFormProps)
       payment_day: card?.payment_day ?? undefined,
       last4: card?.last4 ?? '',
       color: card?.color ?? undefined,
+      has_cashback: card?.has_cashback ?? false,
       is_scholarship: card?.is_scholarship ?? false,
       scholarship_name: card?.scholarship_name ?? '',
     },
@@ -145,6 +147,8 @@ export function CardForm({ accounts, card, onSuccess, onCancel }: CardFormProps)
       payment_day: isCredit ? (data.payment_day ?? undefined) : undefined,
       last4: data.last4 || null,
       color: data.color || null,
+      // El cashback solo aplica a tarjetas de crédito.
+      has_cashback: isCredit ? data.has_cashback : false,
       is_scholarship: data.is_scholarship,
       scholarship_name: data.is_scholarship ? data.scholarship_name || null : null,
     }
@@ -301,6 +305,22 @@ export function CardForm({ accounts, card, onSuccess, onCancel }: CardFormProps)
               {...form.register('payment_day')}
             />
           </div>
+        )}
+
+        {cardType === 'credit' && (
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              {...form.register('has_cashback')}
+              className="cursor-pointer"
+            />
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+              💸 {t('Ofrece cashback')}
+            </span>
+            <span className="text-xs text-slate-400 dark:text-slate-500">
+              {t('(regístralo como ingreso con la categoría Cashback)')}
+            </span>
+          </label>
         )}
 
         <div className="space-y-2">

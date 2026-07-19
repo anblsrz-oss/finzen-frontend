@@ -49,6 +49,7 @@ export interface CardRow {
   payment_day: number | null
   last4: string | null
   color: string | null
+  has_cashback: boolean
   is_scholarship: boolean
   scholarship_name: string | null
   created_at: string

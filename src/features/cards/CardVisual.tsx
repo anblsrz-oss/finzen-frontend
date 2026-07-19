@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { CardRow } from '@/types/db'
+import { CardNetworkLogo } from './CardNetworkLogo'
 
 // Gradientes disponibles para las tarjetas (clave guardada en cards.color).
 export const CARD_GRADIENTS: Record<string, string> = {
@@ -43,41 +44,64 @@ export function CardVisual({ card }: CardVisualProps) {
     <div
       className={`relative aspect-[16/10] w-full max-w-sm overflow-hidden rounded-2xl bg-gradient-to-br ${gradientClass(
         card,
-      )} p-5 text-white shadow-lg`}
+      )} p-5 text-white shadow-xl`}
     >
-      {/* Brillo decorativo */}
+      {/* Brillo/arte decorativo: reflejos diagonales y círculos suaves */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/15" />
       <div className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/10" />
       <div className="pointer-events-none absolute -bottom-12 -left-6 h-32 w-32 rounded-full bg-white/5" />
 
-      <div className="flex items-start justify-between">
+      <div className="relative flex items-start justify-between">
         <div className="flex flex-col">
           <span className="text-sm font-semibold tracking-wide">{card.name}</span>
-          {card.is_scholarship && (
-            <span className="mt-1 inline-flex w-fit items-center rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium">
-              🎓 {card.scholarship_name || t('Beca')}
-            </span>
-          )}
+          <div className="mt-1 flex flex-wrap gap-1">
+            {card.is_scholarship && (
+              <span className="inline-flex w-fit items-center rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium">
+                🎓 {card.scholarship_name || t('Beca')}
+              </span>
+            )}
+            {card.has_cashback && (
+              <span className="inline-flex w-fit items-center rounded-full bg-emerald-400/25 px-2 py-0.5 text-[10px] font-medium">
+                💸 {t('Cashback')}
+              </span>
+            )}
+          </div>
         </div>
         <span className="text-xs font-medium uppercase opacity-90">
           {card.type === 'credit' ? t('Crédito') : t('Débito')}
         </span>
       </div>
 
-      {/* Chip */}
-      <div className="mt-5 h-8 w-11 rounded-md bg-gradient-to-br from-yellow-200 to-yellow-400 opacity-90" />
+      {/* Chip metálico + icono contactless */}
+      <div className="relative mt-5 flex items-center gap-3">
+        <div className="relative h-8 w-11 overflow-hidden rounded-md bg-gradient-to-br from-yellow-100 via-yellow-300 to-amber-500 shadow-inner">
+          <div className="absolute inset-0 grid grid-cols-3 gap-px opacity-40">
+            <div className="border-r border-amber-700/40" />
+            <div className="border-x border-amber-700/40" />
+            <div className="border-l border-amber-700/40" />
+          </div>
+          <div className="absolute inset-y-1/3 left-0 right-0 border-y border-amber-700/40" />
+        </div>
+        <svg viewBox="0 0 24 24" className="h-5 w-5 opacity-80" fill="none" aria-hidden>
+          <path
+            d="M8 6c2.5 2 2.5 10 0 12M12 4c3.5 3 3.5 13 0 16M16 2c4.5 4 4.5 16 0 20"
+            stroke="white"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+          />
+        </svg>
+      </div>
 
       {/* Número (solo últimos 4) */}
-      <div className="mt-4 font-mono text-lg tracking-widest">
+      <div className="relative mt-4 font-mono text-lg tracking-widest [text-shadow:0_1px_2px_rgba(0,0,0,0.25)]">
         •••• •••• •••• {card.last4 || '••••'}
       </div>
 
-      <div className="mt-3 flex items-end justify-between">
-        <span className="max-w-[60%] truncate text-xs uppercase tracking-wide opacity-90">
+      <div className="relative mt-3 flex items-end justify-between">
+        <span className="max-w-[55%] truncate text-xs uppercase tracking-wide opacity-90">
           {card.name}
         </span>
-        <span className="text-lg font-bold italic">
-          {card.brand || ''}
-        </span>
+        <CardNetworkLogo brand={card.brand} />
       </div>
     </div>
   )
