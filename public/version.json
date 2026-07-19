@@ -1,5 +1,5 @@
 {
-  "version": "0.2.1",
+  "version": "0.2.2",
   "apkUrl": "https://github.com/anblsrz-oss/finzen-frontend/releases/latest/download/finzen.apk",
-  "notes": "Edición de cuentas y tarjetas, ocultar montos, edición de categorías con emoji y color, cashback en tarjetas de crédito, gráficos configurables, exportar reportes a Excel y colores de la app configurables. Además, la descarga de actualizaciones ahora abre el navegador externo (antes se quedaba en \"Descargando…\")."
+  "notes": "Ahora puedes escanear ingresos además de gastos (las facturas de nómina se detectan solas). Selector de color de tarjeta con colores personalizados y guardados. Arreglos en móvil: al editar se va al formulario y ya no se corta la última tarjeta."
 }
