@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -59,19 +59,24 @@ const schema = z
         message: 'Selecciona una cuenta para débito',
       })
     }
-    if (data.card_format === 'physical' && !data.brand_option) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['brand_option'],
-        message: 'Selecciona la marca',
-      })
-    }
-    if (data.brand_option === 'other' && !data.brand_other?.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['brand_other'],
-        message: 'Escribe la marca',
-      })
+    // Los campos de marca solo existen en pantalla si la tarjeta es física.
+    // Validarlos cuando es virtual dejaba un error invisible: el botón
+    // "Guardar" no hacía nada y no se veía por qué.
+    if (data.card_format === 'physical') {
+      if (!data.brand_option) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['brand_option'],
+          message: 'Selecciona la marca',
+        })
+      }
+      if (data.brand_option === 'other' && !data.brand_other?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['brand_other'],
+          message: 'Escribe la marca',
+        })
+      }
     }
     if (data.type === 'credit') {
       if (!data.credit_line_id) {
@@ -158,6 +163,15 @@ export function CardForm({ accounts, card, onSuccess, onCancel }: CardFormProps)
   const selectedColor = form.watch('color')
   const isNewLine = selectedLineId === NEW_LINE
   const inheritedLine = creditLines.find((l) => l.id === selectedLineId)
+
+  // Una tarjeta virtual no lleva marca: se limpian sus campos al cambiar de
+  // formato para no arrastrar lo que se había capturado como física.
+  useEffect(() => {
+    if (cardFormat === 'virtual') {
+      form.setValue('brand_option', '')
+      form.setValue('brand_other', '')
+    }
+  }, [cardFormat, form])
 
   const [scanning, setScanning] = useState(false)
   const [scanProgress, setScanProgress] = useState(0)
@@ -280,9 +294,30 @@ export function CardForm({ accounts, card, onSuccess, onCancel }: CardFormProps)
     }
   }
 
+  // Red de seguridad: si la validación falla en un campo que no está visible
+  // (porque su bloque está oculto), el botón parecería no hacer nada. Se
+  // muestra el motivo en vez de dejar al usuario sin señal.
+  const [hiddenError, setHiddenError] = useState<string | null>(null)
+
+  function onInvalid(errors: Record<string, any>) {
+    const messages = Object.values(errors)
+      .map((e: any) => e?.message)
+      .filter(Boolean)
+    setHiddenError(messages.length ? messages.join('. ') : null)
+  }
+
   return (
     <Card className="mb-6 bg-slate-50 dark:bg-slate-900">
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        onSubmit={form.handleSubmit(
+          (data) => {
+            setHiddenError(null)
+            return onSubmit(data)
+          },
+          onInvalid,
+        )}
+        className="space-y-4"
+      >
         {/* Escanear tarjeta con la cámara */}
         <div className="rounded-lg border border-dashed border-slate-300 dark:border-slate-600 p-3">
           <label className="flex cursor-pointer items-center justify-center gap-2 text-sm font-medium text-brand-700 dark:text-brand-500">
@@ -543,6 +578,12 @@ export function CardForm({ accounts, card, onSuccess, onCancel }: CardFormProps)
             />
           )}
         </div>
+
+        {hiddenError && (
+          <p className="rounded-md bg-red-50 p-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200">
+            {hiddenError}
+          </p>
+        )}
 
         <div className="flex gap-2">
           <Button type="submit" disabled={pending}>

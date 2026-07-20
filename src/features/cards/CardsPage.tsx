@@ -152,7 +152,11 @@ export function CardsPage() {
 
       {editingCard && (
         <div ref={formRef} className="scroll-mt-4">
+          {/* key = id: fuerza remontar al pasar de una tarjeta a otra. Sin
+              esto useForm conserva los defaultValues de la tarjeta anterior
+              y se editaba con datos que no eran los de esta. */}
           <CardForm
+            key={editingCard.id}
             accounts={accounts}
             card={editingCard}
             onSuccess={() => setEditingCard(null)}

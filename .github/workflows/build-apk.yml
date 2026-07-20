@@ -25,6 +25,11 @@ on:
 
 permissions:
   contents: write
+  # Necesarios cuando el repo tiene "immutable releases": al publicar, el
+  # action crea una política de inmutabilidad y sin estos permisos falla con
+  # "Error creating policy" (el APK sí se compila y se firma, pero no se sube).
+  attestations: write
+  id-token: write
 
 jobs:
   build:
