@@ -91,8 +91,9 @@ export function TransactionForm({
 
   // Multimoneda: cuando la moneda del movimiento difiere de la principal, se
   // obtiene el tipo de cambio (editable) para convertir a la moneda principal.
+  const txDate = form.watch('txDate')
   const needsFx = !!currency && currency !== mainCurrency
-  const fxQuery = useFxRate(currency, mainCurrency, needsFx)
+  const fxQuery = useFxRate(currency, mainCurrency, needsFx, txDate)
   const [rateInput, setRateInput] = useState('')
 
   useEffect(() => {

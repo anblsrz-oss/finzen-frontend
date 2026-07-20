@@ -11,13 +11,15 @@ interface FxRateResult {
 
 // Obtiene el tipo de cambio base->quote vía la edge function fx-rate (cacheada
 // en la tabla fx_rates). Solo corre cuando base y quote difieren y `enabled`.
-export function useFxRate(base?: string, quote?: string, enabled = true) {
+// `date` (YYYY-MM-DD) permite pedir el tipo de cambio de una fecha específica
+// (la fecha de la transacción); si se omite, el backend usa el día de hoy.
+export function useFxRate(base?: string, quote?: string, enabled = true, date?: string) {
   const shouldRun = enabled && !!base && !!quote && base !== quote
   return useQuery<FxRateResult>({
-    queryKey: ['fx_rate', base, quote],
+    queryKey: ['fx_rate', base, quote, date],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke('fx-rate', {
-        body: { base, quote },
+        body: { base, quote, date },
       })
       if (error) throw error
       if ((data as { error?: string })?.error) {

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -87,10 +87,22 @@ export function ReceiptPage() {
   const isIncome = kind === 'income'
   const currency = form.watch('currency')
   const amountRaw = form.watch('amount')
+  const txDate = form.watch('txDate')
   const needsFx = !!currency && currency !== mainCurrency
-  const fxQuery = useFxRate(currency, mainCurrency, needsFx)
-  const fxRate = needsFx ? fxQuery.data?.rate ?? 0 : 1
-  const basePreview = toBaseAmount(Number(amountRaw) || 0, fxRate)
+  // Se pide el tipo de cambio de la fecha capturada (no la de hoy).
+  const fxQuery = useFxRate(currency, mainCurrency, needsFx, txDate)
+  // Tipo de cambio editable: se prellena con el automático de la fecha, pero el
+  // usuario puede corregirlo (p. ej. con el valor real de su estado de cuenta).
+  const [rateInput, setRateInput] = useState('')
+  useEffect(() => {
+    if (!needsFx) {
+      setRateInput('')
+    } else if (fxQuery.data?.rate) {
+      setRateInput(String(fxQuery.data.rate))
+    }
+  }, [needsFx, fxQuery.data?.rate])
+  const effectiveRate = needsFx ? Number(rateInput) || 0 : 1
+  const basePreview = toBaseAmount(Number(amountRaw) || 0, effectiveRate)
 
   async function handleFile(file: File) {
     fileRef.current = file
@@ -231,7 +243,7 @@ export function ReceiptPage() {
       alert(t('Selecciona una cuenta o tarjeta'))
       return
     }
-    const rate = data.currency !== mainCurrency ? fxRate : 1
+    const rate = data.currency !== mainCurrency ? effectiveRate : 1
     if (data.currency !== mainCurrency && (!rate || rate <= 0)) {
       alert(t('No se obtuvo el tipo de cambio. Intenta de nuevo o registra el gasto desde Transacciones.'))
       return
@@ -402,16 +414,34 @@ export function ReceiptPage() {
                 />
               </div>
               {needsFx && (
-                <p className="rounded-lg bg-sky-50 dark:bg-sky-900/20 p-2 text-xs text-sky-700 dark:text-sky-300">
-                  {fxQuery.isLoading
-                    ? t('Obteniendo tipo de cambio…')
-                    : fxRate > 0
-                      ? t('≈ {{base}} en tu moneda principal (tipo de cambio {{rate}}).', {
-                          base: formatMoney(basePreview, mainCurrency),
-                          rate: fxRate,
-                        })
-                      : t('No se obtuvo el tipo de cambio. Registra el gasto desde Transacciones para ajustarlo.')}
-                </p>
+                <div className="space-y-2 rounded-lg border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-900/20 p-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      label={t('Tipo de cambio ({{from}}→{{to}})', {
+                        from: currency,
+                        to: mainCurrency,
+                      })}
+                      type="number"
+                      step="0.0001"
+                      value={rateInput}
+                      onChange={(e) => setRateInput(e.target.value)}
+                      placeholder={fxQuery.isLoading ? t('Obteniendo…') : '0.00'}
+                    />
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-200">
+                        {t('Equivale a')}
+                      </label>
+                      <p className="rounded-lg bg-white dark:bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
+                        ≈ {formatMoney(basePreview, mainCurrency)}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-sky-700 dark:text-sky-300">
+                    {fxQuery.isError
+                      ? t('No se obtuvo el tipo de cambio automático. Escríbelo manualmente.')
+                      : t('Se toma el tipo de cambio de la fecha del movimiento. Puedes ajustarlo si lo necesitas.')}
+                  </p>
+                </div>
               )}
               <div className="grid grid-cols-2 gap-4">
                 <Input
