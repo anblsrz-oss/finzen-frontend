@@ -10,6 +10,7 @@
 
 import { Capacitor } from '@capacitor/core'
 import { supabase } from '@/lib/supabase'
+import { toISODate } from '@/lib/dates'
 import type { ParsingRuleConfig } from '@/types/db'
 
 const SMS_PLUGIN = 'capacitor-sms-inbox'
@@ -81,7 +82,9 @@ function parseSms(
     out.push({
       amount,
       concept: (rule?.bank_name ?? 'SMS') + ': ' + m.body.slice(0, 120),
-      tx_date: new Date(m.date).toISOString().slice(0, 10),
+      // Fecha local del SMS: con toISOString() un mensaje recibido de noche
+      // (UTC-6) se guardaba con la fecha del dia siguiente.
+      tx_date: toISODate(new Date(m.date)),
       external_id: djb2(`${addr}|${m.date}|${m.body}`),
     })
   }

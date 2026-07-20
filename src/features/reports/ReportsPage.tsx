@@ -18,6 +18,7 @@ import { CategoryPieChart } from '@/components/charts/CategoryPieChart'
 import { ChartControls } from '@/components/charts/ChartControls'
 import { Money } from '@/components/ui/Money'
 import { formatDate } from '@/lib/format'
+import { monthStartISO, todayISO } from '@/lib/dates'
 import { exportReportToExcel } from '@/lib/exportExcel'
 import type { ExportMode } from '@/lib/exportExcel'
 
@@ -29,14 +30,8 @@ export function ReportsPage() {
   const categoryRef = useRef<HTMLDivElement>(null)
   const [exportMode, setExportMode] = useState<ExportMode>('both')
   const [exporting, setExporting] = useState(false)
-  const [startDate, setStartDate] = useState(
-    new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-      .toISOString()
-      .split('T')[0],
-  )
-  const [endDate, setEndDate] = useState(
-    new Date().toISOString().split('T')[0],
-  )
+  const [startDate, setStartDate] = useState(monthStartISO())
+  const [endDate, setEndDate] = useState(todayISO())
 
   // En Gratis, solo mes actual
   const filters =

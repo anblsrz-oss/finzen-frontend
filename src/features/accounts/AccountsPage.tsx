@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/Card'
 import { PremiumGate } from '@/components/ui/PremiumGate'
 import { AccountForm } from './AccountForm'
 import { Money } from '@/components/ui/Money'
+import { useSettings } from '@/store/useSettings'
 import type { AccountRow } from '@/types/db'
 
 export function AccountsPage() {
@@ -28,6 +29,7 @@ export function AccountsPage() {
     }
   }, [editingAccount])
 
+  const showAccountsTotal = useSettings((s) => s.showAccountsTotal)
   const accountsQuery = useAccounts(userId)
   const deleteAccount = useDeleteAccount()
   const { accountLimit } = useEntitlements()
@@ -63,6 +65,14 @@ export function AccountsPage() {
       deleteAccount.mutate({ id, userId: userId! })
     }
   }
+
+  // Total por moneda: sumar MXN con USD daría una cifra sin sentido, así que
+  // cada moneda lleva su propio renglón.
+  const totalsByCurrency = accounts.reduce<Record<string, number>>((acc, a) => {
+    acc[a.currency] = (acc[a.currency] ?? 0) + getBalance(a.id)
+    return acc
+  }, {})
+  const currencies = Object.keys(totalsByCurrency).sort()
 
   return (
     <>
@@ -101,6 +111,26 @@ export function AccountsPage() {
         </div>
       )}
 
+      {/* Total de todas las cuentas. Se puede quitar por completo desde
+          Ajustes; el botón 👁 solo enmascara la cifra, no el apartado. */}
+      {showAccountsTotal && accounts.length > 0 && (
+        <Card className="mb-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            {t('Total en cuentas')}
+          </p>
+          <div className="mt-1 space-y-0.5">
+            {currencies.map((cur) => (
+              <p
+                key={cur}
+                className="text-2xl font-semibold text-slate-800 dark:text-slate-100"
+              >
+                <Money amount={totalsByCurrency[cur]} currency={cur} />
+              </p>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {accounts.length === 0 ? (
         <Card className="border-dashed text-center">
           <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -127,7 +157,9 @@ export function AccountsPage() {
                   </p>
                   {acc.has_yield && (
                     <p className="mt-1 text-xs text-green-600">
-                      📈 {t('Rendimiento:')} {acc.yield_rate}% {t('mensual')}
+                      📈 {t('Rendimiento:')} {acc.yield_rate}%{' '}
+                      {acc.yield_rate_period === 'annual' ? t('anual') : t('mensual')}
+                      {acc.yield_kind === 'term' && <> · {t('plazo fijo')}</>}
                     </p>
                   )}
                 </div>

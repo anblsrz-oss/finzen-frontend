@@ -2,25 +2,39 @@
 // externas). Se eligen según la marca detectada de la tarjeta. Son
 // representaciones estilizadas para dar aspecto realista, no logotipos oficiales.
 
+import { normalizeBrand } from '@/lib/cardBrands'
+
 export type CardNetwork = 'visa' | 'mastercard' | 'amex' | 'discover' | 'generic'
 
 export function networkFromBrand(brand?: string | null): CardNetwork {
-  const b = (brand ?? '').toLowerCase()
-  if (b.includes('visa')) return 'visa'
-  if (b.includes('master')) return 'mastercard'
-  if (b.includes('amex') || b.includes('american')) return 'amex'
-  if (b.includes('discover')) return 'discover'
-  return 'generic'
+  return normalizeBrand(brand) ?? 'generic'
 }
 
 interface CardNetworkLogoProps {
   brand?: string | null
+  /** Las tarjetas virtuales no traen marca impresa: llevan distintivo propio. */
+  cardFormat?: string | null
   className?: string
 }
 
 // Marca de red en la esquina de la tarjeta.
-export function CardNetworkLogo({ brand, className = 'h-8' }: CardNetworkLogoProps) {
+export function CardNetworkLogo({
+  brand,
+  cardFormat,
+  className = 'h-8',
+}: CardNetworkLogoProps) {
   const network = networkFromBrand(brand)
+
+  if (cardFormat === 'virtual') {
+    return (
+      <span
+        className={`${className} inline-flex items-center gap-1 rounded bg-white/20 px-2 text-[11px] font-bold uppercase tracking-wide backdrop-blur-sm`}
+        aria-label="Virtual"
+      >
+        ☁️ Virtual
+      </span>
+    )
+  }
 
   if (network === 'mastercard') {
     return (

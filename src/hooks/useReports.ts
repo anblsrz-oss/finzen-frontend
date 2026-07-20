@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { activeLocale } from '@/i18n'
+import { formatMonthLabel } from '@/lib/dates'
 import type { TransactionRow } from '@/types/db'
 
 export interface ReportFilters {
@@ -108,10 +108,7 @@ export function useMonthlyTotals(userId?: string, filters?: ReportFilters) {
       return Object.entries(byMonth)
         .map(([month, data]) => ({
           month,
-          monthLabel: new Date(month + '-01').toLocaleDateString(activeLocale(), {
-            month: 'short',
-            year: 'numeric',
-          }),
+          monthLabel: formatMonthLabel(month),
           ...data,
         }))
         .sort((a, b) => a.month.localeCompare(b.month))

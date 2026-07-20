@@ -31,6 +31,12 @@ export function useCreateAccount() {
       initial_balance: number
       has_yield: boolean
       yield_rate?: number
+      yield_rate_period?: 'monthly' | 'annual'
+      yield_kind?: 'demand' | 'term'
+      yield_term_days?: number | null
+      yield_term_end?: string | null
+      withhold_isr?: boolean
+      isr_rate?: number | null
       is_scholarship?: boolean
       scholarship_name?: string
     }) => {
@@ -46,6 +52,12 @@ export function useCreateAccount() {
             initial_balance: input.initial_balance,
             has_yield: input.has_yield,
             yield_rate: input.yield_rate,
+            yield_rate_period: input.yield_rate_period ?? 'monthly',
+            yield_kind: input.yield_kind ?? 'demand',
+            yield_term_days: input.yield_term_days ?? null,
+            yield_term_end: input.yield_term_end ?? null,
+            withhold_isr: input.withhold_isr ?? false,
+            isr_rate: input.isr_rate ?? null,
             is_scholarship: input.is_scholarship ?? false,
             scholarship_name: input.scholarship_name || null,
           },
@@ -74,6 +86,12 @@ export function useUpdateAccount() {
       initial_balance?: number
       has_yield?: boolean
       yield_rate?: number
+      yield_rate_period?: 'monthly' | 'annual'
+      yield_kind?: 'demand' | 'term'
+      yield_term_days?: number | null
+      yield_term_end?: string | null
+      withhold_isr?: boolean
+      isr_rate?: number | null
       is_scholarship?: boolean
       scholarship_name?: string | null
     }) => {
@@ -86,6 +104,12 @@ export function useUpdateAccount() {
       if (rest.initial_balance !== undefined) updates.initial_balance = rest.initial_balance
       if (rest.has_yield !== undefined) updates.has_yield = rest.has_yield
       if (rest.yield_rate !== undefined) updates.yield_rate = rest.yield_rate
+      if (rest.yield_rate_period !== undefined) updates.yield_rate_period = rest.yield_rate_period
+      if (rest.yield_kind !== undefined) updates.yield_kind = rest.yield_kind
+      if (rest.yield_term_days !== undefined) updates.yield_term_days = rest.yield_term_days
+      if (rest.yield_term_end !== undefined) updates.yield_term_end = rest.yield_term_end
+      if (rest.withhold_isr !== undefined) updates.withhold_isr = rest.withhold_isr
+      if (rest.isr_rate !== undefined) updates.isr_rate = rest.isr_rate
       if (rest.is_scholarship !== undefined) updates.is_scholarship = rest.is_scholarship
       if (rest.scholarship_name !== undefined) updates.scholarship_name = rest.scholarship_name
 

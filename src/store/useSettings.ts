@@ -14,6 +14,9 @@ interface SettingsState {
   language: LanguagePref
   // Privacidad: oculta los montos (muestra asteriscos) en toda la app.
   hideAmounts: boolean
+  // Muestra el apartado con la suma de todas las cuentas. Es distinto de
+  // hideAmounts: aquel enmascara la cifra, este quita el bloque entero.
+  showAccountsTotal: boolean
   // Preferencias de gráficas (Reportes y Resumen).
   incomeExpenseChartType: IncomeExpenseChartType
   categoryChartType: CategoryChartType
@@ -23,6 +26,7 @@ interface SettingsState {
   setTheme: (theme: ThemePref) => void
   setLanguage: (language: LanguagePref) => void
   toggleHideAmounts: () => void
+  setShowAccountsTotal: (show: boolean) => void
   setIncomeExpenseChartType: (type: IncomeExpenseChartType) => void
   setCategoryChartType: (type: CategoryChartType) => void
   setChartPalette: (palette: string) => void
@@ -51,6 +55,7 @@ export const useSettings = create<SettingsState>()(
       theme: 'system',
       language: 'es',
       hideAmounts: false,
+      showAccountsTotal: true,
       incomeExpenseChartType: 'bar',
       categoryChartType: 'pie',
       // 'categoria' = usar el color propio de cada categoría.
@@ -62,6 +67,7 @@ export const useSettings = create<SettingsState>()(
       },
       setLanguage: (language) => set({ language }),
       toggleHideAmounts: () => set((s) => ({ hideAmounts: !s.hideAmounts })),
+      setShowAccountsTotal: (showAccountsTotal) => set({ showAccountsTotal }),
       setIncomeExpenseChartType: (incomeExpenseChartType) => set({ incomeExpenseChartType }),
       setCategoryChartType: (categoryChartType) => set({ categoryChartType }),
       setChartPalette: (chartPalette) => set({ chartPalette }),

@@ -31,6 +31,8 @@ export function SettingsPage() {
   const setTheme = useSettings((s) => s.setTheme)
   const language = useSettings((s) => s.language)
   const setLanguage = useSettings((s) => s.setLanguage)
+  const showAccountsTotal = useSettings((s) => s.showAccountsTotal)
+  const setShowAccountsTotal = useSettings((s) => s.setShowAccountsTotal)
 
   const userId = session?.user?.id
   const email = session?.user?.email ?? profile?.email
@@ -133,6 +135,27 @@ export function SettingsPage() {
               </button>
             ))}
           </div>
+        </Card>
+
+        {/* Privacidad / visibilidad */}
+        <Card>
+          <p className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">
+            👁️ {t('Visibilidad')}
+          </p>
+          <label className="flex items-start gap-2">
+            <input
+              type="checkbox"
+              className="mt-0.5 cursor-pointer"
+              checked={showAccountsTotal}
+              onChange={(e) => setShowAccountsTotal(e.target.checked)}
+            />
+            <span className="text-sm text-slate-700 dark:text-slate-200">
+              {t('Mostrar total de cuentas')}
+              <span className="block text-xs text-slate-400 dark:text-slate-500">
+                {t('El apartado con la suma de todas tus cuentas, arriba del listado.')}
+              </span>
+            </span>
+          </label>
         </Card>
 
         {/* Moneda principal */}

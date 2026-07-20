@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { CardRow } from '@/types/db'
 import { CardNetworkLogo } from './CardNetworkLogo'
 import { isHexColor, isLightColor, darken } from '@/lib/colorUtils'
+import { normalizeBrand } from '@/lib/cardBrands'
 
 // Gradientes disponibles para las tarjetas (clave guardada en cards.color).
 // Paleta amplia tipo Word: se recorren los tonos para poder elegir con detalle.
@@ -46,21 +47,32 @@ const LIGHT_GRADIENT_KEYS = new Set(['white', 'silver'])
 
 export const CARD_GRADIENT_KEYS = Object.keys(CARD_GRADIENTS)
 
-// Gradiente por defecto según la marca cuando no se eligió color.
-function defaultGradientKey(brand?: string | null): string {
-  const b = (brand ?? '').toLowerCase()
-  if (b.includes('visa')) return 'blue'
-  if (b.includes('master')) return 'amber'
-  if (b.includes('amex') || b.includes('american')) return 'emerald'
-  if (b.includes('discover')) return 'rose'
-  return 'slate'
+// Gradiente por defecto cuando no se eligió color. Las virtuales no tienen
+// marca de la que derivarlo, así que estrenan uno propio.
+function defaultGradientKey(card: Pick<CardRow, 'brand' | 'card_format'>): string {
+  if (card.card_format === 'virtual') return 'violet'
+  switch (normalizeBrand(card.brand)) {
+    case 'visa':
+      return 'blue'
+    case 'mastercard':
+      return 'amber'
+    case 'amex':
+      return 'emerald'
+    case 'discover':
+      return 'rose'
+    default:
+      return 'slate'
+  }
 }
 
-export function gradientClass(card: Pick<CardRow, 'color' | 'brand'>): string {
+type CardSurfaceInput = Pick<CardRow, 'color' | 'brand'> &
+  Partial<Pick<CardRow, 'card_format'>>
+
+export function gradientClass(card: CardSurfaceInput): string {
   const key =
     card.color && CARD_GRADIENTS[card.color]
       ? card.color
-      : defaultGradientKey(card.brand)
+      : defaultGradientKey({ brand: card.brand, card_format: card.card_format ?? 'physical' })
   return CARD_GRADIENTS[key]
 }
 
@@ -68,7 +80,7 @@ export function gradientClass(card: Pick<CardRow, 'color' | 'brand'>): string {
 // ('blue', 'white'…) o bien un color personalizado en hex ('#ff8800'), del que
 // se deriva un degradado. El texto se aclara u oscurece según el fondo para
 // que siempre se lea.
-export function cardSurface(card: Pick<CardRow, 'color' | 'brand'>): {
+export function cardSurface(card: CardSurfaceInput): {
   className: string
   style?: CSSProperties
   light: boolean
@@ -86,7 +98,7 @@ export function cardSurface(card: Pick<CardRow, 'color' | 'brand'>): {
   const key =
     card.color && CARD_GRADIENTS[card.color]
       ? card.color
-      : defaultGradientKey(card.brand)
+      : defaultGradientKey({ brand: card.brand, card_format: card.card_format ?? 'physical' })
   return {
     className: `bg-gradient-to-br ${CARD_GRADIENTS[key]}`,
     light: LIGHT_GRADIENT_KEYS.has(key),
@@ -173,7 +185,7 @@ export function CardVisual({ card }: CardVisualProps) {
         <span className="max-w-[55%] truncate text-xs uppercase tracking-wide opacity-90">
           {card.name}
         </span>
-        <CardNetworkLogo brand={card.brand} />
+        <CardNetworkLogo brand={card.brand} cardFormat={card.card_format} />
       </div>
     </div>
   )

@@ -9,7 +9,12 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Card } from '@/components/ui/Card'
 import { CURRENCIES_ARRAY, CURRENCIES } from '@/lib/format'
+import { toMonthlyRate, toAnnualRate, daysInMonthOf } from '@/lib/yields'
 import type { AccountRow } from '@/types/db'
+
+// Tasa anual de retención sobre el capital para inversiones (Ley de Ingresos).
+// Es solo la sugerencia inicial: cambia cada año y el usuario puede editarla.
+const DEFAULT_ISR_RATE = 0.5
 
 const schema = z.object({
   name: z.string().min(1, 'Nombre requerido'),
@@ -20,6 +25,13 @@ const schema = z.object({
   initial_balance: z.coerce.number(),
   has_yield: z.boolean().default(false),
   yield_rate: z.coerce.number().optional(),
+  // Los bancos y SOFIPOs publican la tasa anual; se guarda cómo se capturó.
+  yield_rate_period: z.enum(['monthly', 'annual']).default('monthly'),
+  yield_kind: z.enum(['demand', 'term']).default('demand'),
+  yield_term_days: z.coerce.number().optional(),
+  yield_term_end: z.string().optional(),
+  withhold_isr: z.boolean().default(false),
+  isr_rate: z.coerce.number().optional(),
   is_scholarship: z.boolean().default(false),
   scholarship_name: z.string().optional(),
 })
@@ -50,12 +62,20 @@ export function AccountForm({ account, onSuccess, onCancel }: AccountFormProps) 
       initial_balance: account?.initial_balance ?? 0,
       has_yield: account?.has_yield ?? false,
       yield_rate: account?.yield_rate ?? undefined,
+      yield_rate_period: account?.yield_rate_period ?? 'monthly',
+      yield_kind: account?.yield_kind ?? 'demand',
+      yield_term_days: account?.yield_term_days ?? undefined,
+      yield_term_end: account?.yield_term_end ?? '',
+      withhold_isr: account?.withhold_isr ?? false,
+      isr_rate: account?.isr_rate ?? DEFAULT_ISR_RATE,
       is_scholarship: account?.is_scholarship ?? false,
       scholarship_name: account?.scholarship_name ?? '',
     },
   })
 
   const pending = createAccount.isPending || updateAccount.isPending
+  const ratePeriod = form.watch('yield_rate_period')
+  const rateValue = Number(form.watch('yield_rate')) || 0
 
   async function onSubmit(data: FormData) {
     if (!session?.user?.id) {
@@ -72,18 +92,29 @@ export function AccountForm({ account, onSuccess, onCancel }: AccountFormProps) 
         alert(`Error: ${error.message || 'Error desconocido'}`)
       },
     }
+    // Los campos de plazo solo aplican a plazo fijo, y el ISR solo si se pidió
+    // descontarlo: si no, se limpian para no dejar datos que no significan nada.
+    const isTerm = data.has_yield && data.yield_kind === 'term'
+    const payload = {
+      ...data,
+      yield_term_days: isTerm ? (data.yield_term_days ?? null) : null,
+      yield_term_end: isTerm ? (data.yield_term_end || null) : null,
+      isr_rate: data.has_yield && data.withhold_isr ? (data.isr_rate ?? null) : null,
+      withhold_isr: data.has_yield && data.withhold_isr,
+    }
+
     if (isEdit) {
       updateAccount.mutate(
         {
           id: account!.id,
           userId: session.user.id,
-          ...data,
+          ...payload,
           scholarship_name: data.is_scholarship ? data.scholarship_name || null : null,
         },
         handlers,
       )
     } else {
-      createAccount.mutate({ userId: session.user.id, ...data }, handlers)
+      createAccount.mutate({ userId: session.user.id, ...payload }, handlers)
     }
   }
 
@@ -142,14 +173,85 @@ export function AccountForm({ account, onSuccess, onCancel }: AccountFormProps) 
             </span>
           </label>
           {form.watch('has_yield') && (
-            <Input
-              label={t('Rendimiento mensual (%)')}
-              type="number"
-              placeholder="0.833"
-              step="0.001"
-              {...form.register('yield_rate')}
-              error={form.formState.errors.yield_rate?.message}
-            />
+            <div className="space-y-3 rounded-lg border border-slate-200 p-3 dark:border-slate-700">
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label={t('Rendimiento (%)')}
+                  type="number"
+                  placeholder="15"
+                  step="0.001"
+                  {...form.register('yield_rate')}
+                  error={form.formState.errors.yield_rate?.message}
+                />
+                <Select
+                  label={t('La tasa es')}
+                  options={[
+                    { value: 'annual', label: t('Anual') },
+                    { value: 'monthly', label: t('Mensual') },
+                  ]}
+                  {...form.register('yield_rate_period')}
+                />
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {ratePeriod === 'annual'
+                  ? t('Los bancos y SOFIPOs publican la tasa anual. Equivale a {{rate}}% este mes ({{days}} días).', {
+                      rate: toMonthlyRate(rateValue, 'annual').toFixed(3),
+                      days: daysInMonthOf(),
+                    })
+                  : t('Equivale a {{rate}}% anual.', {
+                      rate: toAnnualRate(rateValue, 'monthly').toFixed(2),
+                    })}
+              </p>
+
+              <Select
+                label={t('Tipo de rendimiento')}
+                options={[
+                  { value: 'demand', label: t('A la vista (se paga cada mes)') },
+                  { value: 'term', label: t('Plazo fijo (se paga al vencer)') },
+                ]}
+                {...form.register('yield_kind')}
+              />
+
+              {form.watch('yield_kind') === 'term' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label={t('Plazo (días)')}
+                    type="number"
+                    placeholder="90"
+                    min="1"
+                    {...form.register('yield_term_days')}
+                  />
+                  <Input
+                    label={t('Vence el')}
+                    type="date"
+                    {...form.register('yield_term_end')}
+                  />
+                </div>
+              )}
+
+              <label className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  {...form.register('withhold_isr')}
+                  className="mt-0.5 cursor-pointer"
+                />
+                <span className="text-sm text-slate-700 dark:text-slate-200">
+                  {t('Descontar retención de ISR')}
+                  <span className="block text-xs text-slate-400 dark:text-slate-500">
+                    {t('Se retiene sobre el capital, no sobre el interés. La tasa la fija cada año la Ley de Ingresos.')}
+                  </span>
+                </span>
+              </label>
+              {form.watch('withhold_isr') && (
+                <Input
+                  label={t('Tasa de ISR anual (%)')}
+                  type="number"
+                  step="0.001"
+                  placeholder={String(DEFAULT_ISR_RATE)}
+                  {...form.register('isr_rate')}
+                />
+              )}
+            </div>
           )}
         </div>
 

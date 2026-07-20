@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { monthlyPayment } from '@/lib/installments'
 import type { TransactionRow, TxKind, TxSource, TransactionDeletionRow } from '@/types/db'
 
 interface TransactionFilter {
@@ -206,9 +207,14 @@ export function useCreateInstallmentPlan() {
       months: number
       isInterestFree: boolean
       interestAmount: number
+      /** Cuándo arrancó el plan; puede ser un mes anterior al registro. */
+      startDate?: string
     }) => {
-      const monthlyPayment =
-        (input.totalAmount + input.interestAmount) / input.months
+      const monthly = monthlyPayment(
+        input.totalAmount,
+        input.interestAmount,
+        input.months,
+      )
       const { data, error } = await supabase
         .from('installment_plans')
         .insert([
@@ -222,7 +228,8 @@ export function useCreateInstallmentPlan() {
             months: input.months,
             is_interest_free: input.isInterestFree,
             interest_amount: input.interestAmount,
-            monthly_payment: monthlyPayment,
+            monthly_payment: monthly,
+            ...(input.startDate ? { start_date: input.startDate } : {}),
           },
         ])
         .select()

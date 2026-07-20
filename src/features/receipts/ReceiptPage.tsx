@@ -15,6 +15,7 @@ import { extractFromPdf } from '@/lib/pdfExtract'
 import { useFxRate } from '@/hooks/useFxRate'
 import { toBaseAmount } from '@/lib/fx'
 import { CURRENCIES, formatMoney } from '@/lib/format'
+import { todayISO } from '@/lib/dates'
 import { parseCfdiXml, isCfdiXml, cfdiIsIncome } from '@/lib/cfdiParser'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
@@ -78,7 +79,7 @@ export function ReceiptPage() {
     defaultValues: {
       kind: 'expense',
       currency: mainCurrency,
-      txDate: new Date().toISOString().split('T')[0],
+      txDate: todayISO(),
     },
   })
 
@@ -132,7 +133,7 @@ export function ReceiptPage() {
         kind: income ? 'income' : 'expense',
         amount: (cfdi.amount ?? undefined) as number | undefined,
         currency: cfdi.currency ?? mainCurrency,
-        txDate: cfdi.txDate ?? new Date().toISOString().split('T')[0],
+        txDate: cfdi.txDate ?? todayISO(),
         concept: cfdi.concept ?? cfdi.merchant ?? '',
         categoryId: '',
         accountId: '',
@@ -160,7 +161,7 @@ export function ReceiptPage() {
       kind: 'expense',
       amount: (extracted.amount ?? undefined) as number | undefined,
       currency: mainCurrency,
-      txDate: extracted.txDate ?? new Date().toISOString().split('T')[0],
+      txDate: extracted.txDate ?? todayISO(),
       concept: extracted.merchant ?? '',
       categoryId: '',
       accountId: '',
@@ -282,7 +283,7 @@ export function ReceiptPage() {
     form.reset({
       kind: 'expense',
       currency: mainCurrency,
-      txDate: new Date().toISOString().split('T')[0],
+      txDate: todayISO(),
     })
     setStep('capture')
   }

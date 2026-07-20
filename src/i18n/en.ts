@@ -255,6 +255,89 @@ export const en: Record<string, string> = {
   'Día de corte': 'Cut-off day',
   'Día de pago': 'Payment day',
   'Crear tarjeta': 'Create card',
+  // Formato y marca
+  Formato: 'Format',
+  '💳 Física': '💳 Physical',
+  '☁️ Virtual': '☁️ Virtual',
+  Virtual: 'Virtual',
+  Marca: 'Brand',
+  'Selecciona una marca': 'Select a brand',
+  'Otra…': 'Other…',
+  '¿Cuál marca?': 'Which brand?',
+  'Ej: Carnet, UnionPay': 'E.g. Carnet, UnionPay',
+  // Líneas de crédito
+  'Línea de crédito': 'Credit line',
+  'Selecciona una línea': 'Select a line',
+  '➕ Nueva línea de crédito': '➕ New credit line',
+  'Varias tarjetas del mismo banco comparten un solo límite y las mismas fechas de corte y pago. Selecciona la línea que ya usas o crea una nueva.':
+    'Several cards from the same bank share a single limit and the same cut-off and payment dates. Pick the line you already use, or create a new one.',
+  'Nombre de la línea': 'Line name',
+  'Ej: Nu': 'E.g. Nu',
+  'Las fechas se recorren en días inhábiles': 'Dates shift on non-business days',
+  'Te preguntaremos la fecha real cuando llegue el corte.':
+    "We'll ask you for the real date when the cut-off comes around.",
+  'Hereda de {{name}}: límite {{limit}}{{dates}}':
+    'Inherits from {{name}}: limit {{limit}}{{dates}}',
+  ', corte el día {{cut}} y pago el día {{pay}}':
+    ', cut-off on day {{cut}} and payment on day {{pay}}',
+  '{{n}} tarjetas · límite compartido': '{{n}} cards · shared limit',
+  'Otras tarjetas': 'Other cards',
+  'Gasto de esta tarjeta': 'This card’s spend',
+  // Periodos de corte/pago
+  '¿Tu corte de {{name}} fue el {{date}}?': 'Was your {{name}} cut-off on {{date}}?',
+  'Marcaste que esta línea recorre sus fechas en días inhábiles. Confírmala para que los periodos cuadren.':
+    'You marked this line as shifting its dates on non-business days. Confirm it so the periods add up.',
+  'Sí, fue esa fecha': 'Yes, that was the date',
+  'Fue otro día': 'It was another day',
+  'Ver historial de periodos': 'View period history',
+  // MSI retroactivo
+  'Mes en que empezó el plan': 'Month the plan started',
+  'Este plan empezó en {{month}} (hace {{n}} meses).':
+    'This plan started in {{month}} ({{n}} months ago).',
+  '¿Ya pagaste mensualidades anteriores?': 'Have you already paid earlier installments?',
+  'Sí, ya pagué algunas': 'Yes, I already paid some',
+  '¿Cuántas de {{total}}?': 'How many out of {{total}}?',
+  'Se registrará un ajuste de {{amount}} con fecha {{date}} para que el historial no quede negativo.':
+    'An adjustment of {{amount}} dated {{date}} will be recorded so your history doesn’t go negative.',
+  'Ajuste: {{n}} mensualidades ya pagadas de {{desc}}':
+    'Adjustment: {{n}} installments already paid for {{desc}}',
+  'Ajuste de saldo': 'Balance adjustment',
+  // Total de cuentas
+  'Total en cuentas': 'Total in accounts',
+  // Rendimientos: tasa anual, plazo fijo, ISR
+  'Rendimiento (%)': 'Yield (%)',
+  'La tasa es': 'The rate is',
+  Anual: 'Annual',
+  Mensual: 'Monthly',
+  anual: 'annual',
+  'Los bancos y SOFIPOs publican la tasa anual. Equivale a {{rate}}% este mes ({{days}} días).':
+    'Banks and SOFIPOs publish the annual rate. That is {{rate}}% this month ({{days}} days).',
+  'Equivale a {{rate}}% anual.': 'That is {{rate}}% annual.',
+  'Tipo de rendimiento': 'Yield type',
+  'A la vista (se paga cada mes)': 'On demand (paid monthly)',
+  'Plazo fijo (se paga al vencer)': 'Fixed term (paid at maturity)',
+  'Plazo (días)': 'Term (days)',
+  'Vence el': 'Matures on',
+  'plazo fijo': 'fixed term',
+  'plazo fijo, vence {{date}}': 'fixed term, matures {{date}}',
+  'Descontar retención de ISR': 'Deduct income tax withholding',
+  'Se retiene sobre el capital, no sobre el interés. La tasa la fija cada año la Ley de Ingresos.':
+    'Withheld on the principal, not on the interest. The rate is set each year by the Revenue Law.',
+  'Tasa de ISR anual (%)': 'Annual withholding rate (%)',
+  Bruto: 'Gross',
+  ISR: 'Tax',
+  neto: 'net',
+  Visibilidad: 'Visibility',
+  'Mostrar total de cuentas': 'Show accounts total',
+  'El apartado con la suma de todas tus cuentas, arriba del listado.':
+    'The panel with the sum of all your accounts, above the list.',
+  confirmado: 'confirmed',
+  corte: 'cut-off',
+  pago: 'payment',
+  días: 'days',
+  hoy: 'today',
+  'en {{n}} días': 'in {{n}} days',
+  'hace {{n}} días': '{{n}} days ago',
 
   // Categorías
   'Clasifica tus ingresos y gastos.': 'Classify your income and expenses.',

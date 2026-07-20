@@ -11,6 +11,7 @@ import { IncomeExpenseChart } from '@/components/charts/IncomeExpenseChart'
 import { CategoryPieChart } from '@/components/charts/CategoryPieChart'
 import { ChartControls } from '@/components/charts/ChartControls'
 import { Money } from '@/components/ui/Money'
+import { monthStartISO, todayISO } from '@/lib/dates'
 
 export function DashboardPage() {
   const { t } = useTranslation()
@@ -19,14 +20,8 @@ export function DashboardPage() {
   const mainCurrency = profile?.main_currency ?? 'MXN'
 
   // Solo mes actual para Gratis
-  const startDate = new Date(
-    new Date().getFullYear(),
-    new Date().getMonth(),
-    1,
-  )
-    .toISOString()
-    .split('T')[0]
-  const endDate = new Date().toISOString().split('T')[0]
+  const startDate = monthStartISO()
+  const endDate = todayISO()
 
   const filters = { startDate, endDate }
 

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useCreateOrUpdateYield, useDeleteYield } from '@/hooks/useYields'
-import { activeLocale } from '@/i18n'
+import { monthStartISO, formatMonthLabel } from '@/lib/dates'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
@@ -36,21 +36,19 @@ export function YieldForm({
     currentRecord?.actual_growth?.toString() ?? '',
   )
   const [selectedMonth, setSelectedMonth] = useState(
-    currentRecord?.period_month ?? new Date().toISOString().split('T')[0].slice(0, 7) + '-01',
+    currentRecord?.period_month ?? monthStartISO(),
   )
 
   // Generar últimos 12 meses
   const months = []
   for (let i = 0; i < 12; i++) {
     const d = new Date()
+    d.setDate(1) // evita que el mes se salte al restar (ej. 31 de marzo - 1 mes)
     d.setMonth(d.getMonth() - i)
-    const monthStr = d.toISOString().split('T')[0].slice(0, 7) + '-01'
+    const monthStr = monthStartISO(d)
     months.push({
       value: monthStr,
-      label: new Date(monthStr).toLocaleDateString(activeLocale(), {
-        year: 'numeric',
-        month: 'long',
-      }),
+      label: formatMonthLabel(monthStr, { year: 'numeric', month: 'long' }),
     })
   }
 

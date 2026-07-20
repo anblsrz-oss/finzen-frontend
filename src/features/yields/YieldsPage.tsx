@@ -2,7 +2,9 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useAccounts, useAccountBalances } from '@/hooks/useAccounts'
 import { useEntitlements } from '@/hooks/useAppConfig'
-import { activeLocale } from '@/i18n'
+import { monthStartISO, formatMonthLabel } from '@/lib/dates'
+import { formatDate } from '@/lib/format'
+import { expectedYield } from '@/lib/yields'
 import { useYieldRecords } from '@/hooks/useYields'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
@@ -78,21 +80,45 @@ export function YieldsPage() {
           )
 
           // Rendimiento esperado este mes
-          const currentMonth = new Date().toISOString().split('T')[0].slice(0, 7) + '-01'
+          const currentMonth = monthStartISO()
           const thisMonthYield = accountYields.find(
             (y) => y.period_month === currentMonth,
           )
-          const expectedGrowth =
-            thisMonthYield?.expected_growth ??
-            (currentBalance * (account.yield_rate || 0)) / 100
+          // Bruto → ISR → neto. El esperado que se compara contra el real es
+          // el NETO, que es lo que de verdad abona el banco.
+          const projection = expectedYield({
+            balance: currentBalance,
+            rate: account.yield_rate || 0,
+            period: account.yield_rate_period ?? 'monthly',
+            kind: account.yield_kind ?? 'demand',
+            termEnd: account.yield_term_end,
+            termDays: account.yield_term_days,
+            periodMonth: currentMonth,
+            withholdIsr: account.withhold_isr,
+            isrRate: account.isr_rate,
+          })
+          const expectedGrowth = thisMonthYield?.expected_growth ?? projection.net
 
           return (
             <div key={account.id} className="space-y-3">
               <Card className="bg-gradient-to-r from-green-50 to-emerald-50">
                 <h3 className="font-semibold text-slate-800 dark:text-slate-100">{account.name}</h3>
                 <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-                  📈 {t('Rendimiento:')} {account.yield_rate}% {t('mensual')}
+                  📈 {t('Rendimiento:')} {account.yield_rate}%{' '}
+                  {account.yield_rate_period === 'annual' ? t('anual') : t('mensual')}
+                  {account.yield_kind === 'term' && account.yield_term_end && (
+                    <> · {t('plazo fijo, vence {{date}}', { date: formatDate(account.yield_term_end) })}</>
+                  )}
                 </p>
+                {/* Desglose: la retención es la diferencia principal contra el
+                    estado de cuenta, así que se muestra explícita. */}
+                {account.withhold_isr && projection.isr > 0 && (
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {t('Bruto')} {formatMoney(projection.gross, account.currency)} ·{' '}
+                    {t('ISR')} −{formatMoney(projection.isr, account.currency)} ·{' '}
+                    {t('neto')} {formatMoney(projection.net, account.currency)}
+                  </p>
+                )}
                 <div className="mt-3 grid grid-cols-3 gap-3">
                   <div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">{t('Saldo actual')}</p>
@@ -138,13 +164,10 @@ export function YieldsPage() {
                       >
                       <div>
                         <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                          {new Date(y.period_month).toLocaleDateString(
-                            activeLocale(),
-                            {
-                              year: 'numeric',
-                              month: 'long',
-                            },
-                          )}
+                          {formatMonthLabel(y.period_month, {
+                            year: 'numeric',
+                            month: 'long',
+                          })}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
                           {t('Esperado:')}{' '}

@@ -31,9 +31,53 @@ export interface AccountRow {
   initial_balance: number
   has_yield: boolean
   yield_rate: number | null
+  /** Si yield_rate se capturó como tasa mensual o anual (como la publica el banco). */
+  yield_rate_period: 'monthly' | 'annual'
+  /** A la vista (paga cada mes) o a plazo fijo (paga al vencimiento). */
+  yield_kind: 'demand' | 'term'
+  yield_term_days: number | null
+  yield_term_end: string | null
+  withhold_isr: boolean
+  /** Tasa anual de retención sobre el capital (la fija la Ley de Ingresos). */
+  isr_rate: number | null
   is_scholarship: boolean
   scholarship_name: string | null
   created_at: string
+}
+
+export interface CreditLineRow {
+  id: string
+  user_id: string
+  name: string
+  bank_name: string | null
+  credit_limit: number
+  currency: string
+  cut_day: number | null
+  payment_day: number | null
+  dates_may_shift: boolean
+  created_at: string
+}
+
+export interface CreditLinePeriodRow {
+  id: string
+  user_id: string
+  credit_line_id: string
+  /** Primer día del mes del corte. */
+  period_month: string
+  cut_date: string
+  payment_date: string
+  confirmed: boolean
+  created_at: string
+}
+
+export interface CreditLineUsageRow {
+  credit_line_id: string
+  user_id: string
+  name: string
+  currency: string
+  credit_limit: number
+  used: number
+  available: number
 }
 
 export interface CardRow {
@@ -42,8 +86,13 @@ export interface CardRow {
   name: string
   brand: string | null
   type: CardType
+  /** Físico o virtual; independiente de crédito/débito. */
+  card_format: 'physical' | 'virtual'
   currency: string
   account_id: string | null
+  credit_line_id: string | null
+  // Legado: el límite y las fechas viven ahora en credit_lines. Se conservan
+  // por si hay que revertir, pero el frontend ya no los lee.
   credit_limit: number | null
   cut_day: number | null
   payment_day: number | null

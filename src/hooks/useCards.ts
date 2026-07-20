@@ -25,13 +25,12 @@ export function useCreateCard() {
     mutationFn: async (input: {
       userId: string
       name: string
-      brand?: string
+      brand?: string | null
       type: 'credit' | 'debit'
+      card_format?: 'physical' | 'virtual'
       currency: string
       account_id?: string | null
-      credit_limit?: number
-      cut_day?: number
-      payment_day?: number
+      credit_line_id?: string | null
       last4?: string | null
       color?: string | null
       has_cashback?: boolean
@@ -41,8 +40,9 @@ export function useCreateCard() {
       const cardData: Record<string, any> = {
         user_id: input.userId,
         name: input.name,
-        brand: input.brand,
+        brand: input.brand ?? null,
         type: input.type,
+        card_format: input.card_format ?? 'physical',
         currency: input.currency,
         account_id: input.account_id,
         last4: input.last4 || null,
@@ -52,11 +52,9 @@ export function useCreateCard() {
         scholarship_name: input.scholarship_name || null,
       }
 
-      // Solo agregar campos de crédito si es tarjeta de crédito
+      // El límite y las fechas viven en la línea de crédito, no en la tarjeta.
       if (input.type === 'credit') {
-        cardData.credit_limit = input.credit_limit
-        cardData.cut_day = input.cut_day
-        cardData.payment_day = input.payment_day
+        cardData.credit_line_id = input.credit_line_id ?? null
       }
 
       const { data, error } = await supabase
@@ -80,13 +78,12 @@ export function useUpdateCard() {
       id: string
       userId: string
       name?: string
-      brand?: string
+      brand?: string | null
       type?: string
+      card_format?: 'physical' | 'virtual'
       currency?: string
       account_id?: string | null
-      credit_limit?: number
-      cut_day?: number
-      payment_day?: number
+      credit_line_id?: string | null
       last4?: string | null
       color?: string | null
       has_cashback?: boolean
@@ -96,13 +93,12 @@ export function useUpdateCard() {
       const { id, userId, ...rest } = input
       const updates: Record<string, any> = {}
       if (rest.name !== undefined) updates.name = rest.name
-      if (rest.brand !== undefined) updates.brand = rest.brand
+      if (rest.brand !== undefined) updates.brand = rest.brand || null
       if (rest.type !== undefined) updates.type = rest.type
+      if (rest.card_format !== undefined) updates.card_format = rest.card_format
       if (rest.currency !== undefined) updates.currency = rest.currency
       if (rest.account_id !== undefined) updates.account_id = rest.account_id
-      if (rest.credit_limit !== undefined) updates.credit_limit = rest.credit_limit
-      if (rest.cut_day !== undefined) updates.cut_day = rest.cut_day
-      if (rest.payment_day !== undefined) updates.payment_day = rest.payment_day
+      if (rest.credit_line_id !== undefined) updates.credit_line_id = rest.credit_line_id
       if (rest.last4 !== undefined) updates.last4 = rest.last4 || null
       if (rest.color !== undefined) updates.color = rest.color || null
       if (rest.has_cashback !== undefined) updates.has_cashback = rest.has_cashback
@@ -121,6 +117,7 @@ export function useUpdateCard() {
     onSuccess: (_data, input) => {
       queryClient.invalidateQueries({ queryKey: ['cards', input.userId] })
       queryClient.invalidateQueries({ queryKey: ['card_usage', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['credit_line_usage', input.userId] })
     },
   })
 }
@@ -137,6 +134,7 @@ export function useDeleteCard() {
     },
     onSuccess: (_data, input) => {
       queryClient.invalidateQueries({ queryKey: ['cards', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['credit_line_usage', input.userId] })
     },
   })
 }

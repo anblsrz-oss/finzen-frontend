@@ -8,7 +8,14 @@ import { useCreateTransaction, useCreateInstallmentPlan } from '@/hooks/useTrans
 import { useFxRate } from '@/hooks/useFxRate'
 import { useEntitlements } from '@/hooks/useAppConfig'
 import { toBaseAmount } from '@/lib/fx'
-import { CURRENCIES, formatMoney } from '@/lib/format'
+import { CURRENCIES, formatMoney, formatDate } from '@/lib/format'
+import { todayISO, formatMonthLabel } from '@/lib/dates'
+import {
+  monthlyPayment,
+  elapsedInstallments,
+  isRetroactive,
+  adjustmentDate,
+} from '@/lib/installments'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -30,6 +37,10 @@ const schema = z.object({
   msiMonths: z.coerce.number().optional(),
   msiInterestFree: z.boolean().default(true),
   msiInterest: z.coerce.number().default(0),
+  // Un MSI puede registrarse tarde, con mensualidades ya pagadas.
+  msiStartDate: z.string().optional(),
+  msiPaidPrevious: z.boolean().default(false),
+  msiPaidCount: z.coerce.number().optional(),
   familyExpense: z.boolean().default(false),
 })
 
@@ -64,9 +75,11 @@ export function TransactionForm({
     defaultValues: {
       kind: 'expense',
       currency: mainCurrency,
-      txDate: new Date().toISOString().split('T')[0],
+      txDate: todayISO(),
       msi: false,
       msiInterestFree: true,
+      msiStartDate: todayISO(),
+      msiPaidPrevious: false,
     },
   })
 
@@ -93,9 +106,36 @@ export function TransactionForm({
   const amountNum = Number(amountRaw) || 0
   const basePreview = needsFx ? toBaseAmount(amountNum, effectiveRate) : amountNum
   const msi = form.watch('msi')
+  const msiMonths = Number(form.watch('msiMonths')) || 0
+  const msiStartDate = form.watch('msiStartDate') || todayISO()
+  const msiPaidPrevious = form.watch('msiPaidPrevious')
   const familyExpense = form.watch('familyExpense')
+
+  // Un MSI que arrancó meses atrás: hay que preguntar si esas mensualidades
+  // ya se pagaron, si no el histórico queda negativo por un gasto que en
+  // realidad se venía cubriendo.
+  const msiIsRetroactive = msi && msiMonths > 0 && isRetroactive(msiStartDate)
+  const msiElapsed = msiIsRetroactive ? elapsedInstallments(msiStartDate, msiMonths) : 0
+  const msiPaidCount = Math.min(
+    Number(form.watch('msiPaidCount')) || 0,
+    msiMonths || 0,
+  )
+  const msiMonthly = monthlyPayment(amountNum, Number(form.watch('msiInterest')) || 0, msiMonths)
+  const msiAdjustment = msiPaidPrevious ? msiMonthly * msiPaidCount : 0
+
+  // Al marcar "ya pagué", se propone por defecto lo transcurrido.
+  useEffect(() => {
+    if (msiPaidPrevious && !form.getValues('msiPaidCount')) {
+      form.setValue('msiPaidCount', msiElapsed)
+    }
+  }, [msiPaidPrevious, msiElapsed, form])
   const selectedCard = cards.find((c) => c.id === cardId)
   const isCredit = selectedCard?.type === 'credit'
+
+  // Categoría de sistema donde cae el ajuste por mensualidades ya pagadas.
+  const adjustmentCategoryId = categories.find(
+    (c) => c.is_system && c.name === 'Ajuste de saldo',
+  )?.id
 
   const myUserId = session?.user?.id
   // Tarjetas familiares ajenas (del jefe de familia): entran al selector.
@@ -184,7 +224,35 @@ export function TransactionForm({
               months: data.msiMonths,
               isInterestFree: data.msiInterestFree,
               interestAmount: data.msiInterest || 0,
+              startDate: data.msiStartDate,
             })
+
+            // Mensualidades ya pagadas de periodos anteriores: se compensan
+            // con un ingreso de ajuste fechado en el mes pasado, para que el
+            // histórico no muestre un negativo que nunca existió.
+            const paid = Math.min(data.msiPaidCount || 0, data.msiMonths)
+            if (data.msiPaidPrevious && paid > 0) {
+              const monthly = monthlyPayment(
+                data.amount,
+                data.msiInterest || 0,
+                data.msiMonths,
+              )
+              await createTransaction.mutateAsync({
+                userId: session.user.id,
+                kind: 'income',
+                amount: monthly * paid,
+                currency: data.currency,
+                fxRate,
+                baseAmount: needsFx ? toBaseAmount(monthly * paid, fxRate) : monthly * paid,
+                concept: t('Ajuste: {{n}} mensualidades ya pagadas de {{desc}}', {
+                  n: paid,
+                  desc: data.concept || t('Compra'),
+                }),
+                categoryId: adjustmentCategoryId,
+                cardId: cardId!,
+                txDate: adjustmentDate(),
+              })
+            }
           }
           form.reset()
           onSuccess?.()
@@ -410,6 +478,59 @@ export function TransactionForm({
                       step="0.01"
                       {...form.register('msiInterest')}
                     />
+                  )}
+                </div>
+              )}
+
+              {msi && (
+                <Input
+                  label={t('Mes en que empezó el plan')}
+                  type="date"
+                  {...form.register('msiStartDate')}
+                />
+              )}
+
+              {/* Plan que arrancó en un periodo anterior: hay que saber si
+                  esas mensualidades ya se pagaron. */}
+              {msiIsRetroactive && (
+                <div className="space-y-2 rounded-md border border-amber-300 bg-white p-3 dark:border-amber-700 dark:bg-slate-800">
+                  <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                    ⚠️ {t('Este plan empezó en {{month}} (hace {{n}} meses).', {
+                      month: formatMonthLabel(msiStartDate),
+                      n: msiElapsed,
+                    })}
+                  </p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                    {t('¿Ya pagaste mensualidades anteriores?')}
+                  </p>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      {...form.register('msiPaidPrevious')}
+                      className="cursor-pointer"
+                    />
+                    <span className="text-sm text-slate-700 dark:text-slate-200">
+                      {t('Sí, ya pagué algunas')}
+                    </span>
+                  </label>
+                  {msiPaidPrevious && (
+                    <>
+                      <Input
+                        label={t('¿Cuántas de {{total}}?', { total: msiMonths })}
+                        type="number"
+                        min="1"
+                        max={msiMonths || undefined}
+                        {...form.register('msiPaidCount')}
+                      />
+                      {msiAdjustment > 0 && (
+                        <p className="rounded bg-emerald-50 p-2 text-xs text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200">
+                          {t('Se registrará un ajuste de {{amount}} con fecha {{date}} para que el historial no quede negativo.', {
+                            amount: formatMoney(msiAdjustment, currency),
+                            date: formatDate(adjustmentDate()),
+                          })}
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
               )}

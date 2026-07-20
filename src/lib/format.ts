@@ -2,6 +2,7 @@
 // El locale sigue al idioma activo (es -> es-MX, en -> en-US).
 
 import { activeLocale } from '@/i18n'
+import { parseLocalDate } from '@/lib/dates'
 
 export function formatMoney(amount: number, currency = 'MXN'): string {
   try {
@@ -17,7 +18,10 @@ export function formatMoney(amount: number, currency = 'MXN'): string {
 }
 
 export function formatDate(date: string | Date): string {
-  const d = typeof date === 'string' ? new Date(date) : date
+  // parseLocalDate distingue las columnas `date` ("YYYY-MM-DD", medianoche
+  // local) de las `timestamptz` (que ya traen zona). Con `new Date()` a secas
+  // las primeras se leian como UTC y se mostraba el dia anterior.
+  const d = parseLocalDate(date)
   return new Intl.DateTimeFormat(activeLocale(), {
     year: 'numeric',
     month: 'short',
