@@ -1,5 +1,5 @@
--- =====================================================================
--- FinZen — MVP 5: configuración global de premium y límites (editable por
+﻿-- =====================================================================
+-- Ahorbit — MVP 5: configuración global de premium y límites (editable por
 -- admin). Por ahora TODO gratis: límites en 0 (ilimitado) y features no premium.
 -- Un admin puede endurecer límites y marcar features como premium después.
 -- Re-ejecutable.

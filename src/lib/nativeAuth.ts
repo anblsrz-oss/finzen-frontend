@@ -11,7 +11,7 @@ import { App } from '@capacitor/app'
 import { Browser } from '@capacitor/browser'
 import { supabase } from '@/lib/supabase'
 
-export const NATIVE_REDIRECT = 'com.finzen.app://auth-callback'
+export const NATIVE_REDIRECT = 'com.ahorbit.app://auth-callback'
 
 export function isNative(): boolean {
   return Capacitor.isNativePlatform()

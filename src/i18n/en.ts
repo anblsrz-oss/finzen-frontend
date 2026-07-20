@@ -1,4 +1,4 @@
-// Diccionario inglés. Las claves son el texto en español (claves naturales);
+﻿// Diccionario inglés. Las claves son el texto en español (claves naturales);
 // si una clave no está aquí, i18next cae al español (fallbackLng: 'es').
 // Interpolaciones con {{var}} se conservan igual en ambos idiomas.
 
@@ -87,6 +87,28 @@ export const en: Record<string, string> = {
   Hasta: 'To',
   'Premium: filtra por rango de fechas personalizado, cuenta o tarjeta. Actualiza tu plan para más análisis.':
     'Premium: filter by custom date range, account or card. Upgrade your plan for more analytics.',
+  'Ingresos y Egresos por Tarjeta': 'Income and Expenses by Card',
+  'Ingresos y Egresos por Cuenta': 'Income and Expenses by Account',
+  'Uso de línea de crédito': 'Credit line usage',
+  'Sin líneas de crédito registradas.': 'No credit lines registered.',
+  'Sin movimientos en este período.': 'No activity in this period.',
+  'Sin asignar': 'Unassigned',
+  'Sin gastos en este período': 'No expenses in this period',
+  // Configuración de gráficos
+  'Configurar gráfico': 'Configure chart',
+  'Restablecer colores': 'Reset colors',
+  'Incluir en Excel': 'Include in Excel',
+  'Cambiar color': 'Change color',
+  Subir: 'Move up',
+  Bajar: 'Move down',
+  Mostrar: 'Show',
+  Series: 'Series',
+  Elementos: 'Items',
+  Listo: 'Done',
+  Gasto: 'Spending',
+  'Uso bajo': 'Low usage',
+  'Uso medio': 'Medium usage',
+  'Uso alto': 'High usage',
 
   // Transacciones
   'Ingresos, egresos y transferencias entre tus cuentas.':
@@ -95,6 +117,21 @@ export const en: Record<string, string> = {
   'Historial ({{count}})': 'History ({{count}})',
   '+ Nueva transacción': '+ New transaction',
   'Historial de transacciones eliminadas': 'Deleted transactions history',
+  Filtros: 'Filters',
+  'Limpiar filtros': 'Clear filters',
+  '{{count}} transacciones': '{{count}} transactions',
+  'Ninguna transacción coincide con los filtros.':
+    'No transactions match the filters.',
+  Buscar: 'Search',
+  'Concepto o nota…': 'Concept or note…',
+  Todos: 'All',
+  Todas: 'All',
+  Pendientes: 'Pending',
+  Conciliadas: 'Settled',
+  Transferencia: 'Transfer',
+  'Monto mín.': 'Min amount',
+  'Monto máx.': 'Max amount',
+  'Sin opciones': 'No options',
   'Aún no has eliminado ninguna.': "You haven't deleted any yet.",
   eliminada: 'deleted',
   'Motivo:': 'Reason:',
@@ -569,8 +606,8 @@ export const en: Record<string, string> = {
   'Registra cuentas y tarjetas, o sincroniza tus movimientos desde el correo.':
     'Add accounts and cards, or sync your transactions from email.',
   'Captura sin esfuerzo': 'Capture effortlessly',
-  'Escanea tickets y facturas con la cámara o sube un PDF; FinZen extrae los datos.':
-    'Scan receipts and invoices with the camera or upload a PDF; FinZen extracts the data.',
+  'Escanea tickets y facturas con la cámara o sube un PDF; Ahorbit extrae los datos.':
+    'Scan receipts and invoices with the camera or upload a PDF; Ahorbit extracts the data.',
   'Entiende tu dinero': 'Understand your money',
   'Mira tu balance, gastos por categoría y reportes claros en un solo lugar.':
     'See your balance, spending by category and clear reports all in one place.',
@@ -590,19 +627,21 @@ export const en: Record<string, string> = {
   'Modo oscuro e idiomas': 'Dark mode and languages',
   'Español e inglés, claro y oscuro.': 'Spanish and English, light and dark.',
   'Llévala en tu celular': 'Take it on your phone',
-  'Instala FinZen como app en tu teléfono. Pronto también un APK descargable para Android.':
-    'Install FinZen as an app on your phone. Soon also a downloadable APK for Android.',
+  'Aplicación': 'App',
+  'Instala Ahorbit en tu teléfono y llévala contigo.':
+    'Install Ahorbit on your phone and take it with you.',
+  'Versión {{version}}': 'Version {{version}}',
   'Empezar ahora': 'Start now',
   '¿Ideas para mejorar?': 'Ideas to improve?',
-  'Cuéntanos qué te gustaría ver en FinZen. Leemos todos los comentarios.':
-    'Tell us what you would like to see in FinZen. We read every comment.',
+  'Cuéntanos qué te gustaría ver en Ahorbit. Leemos todos los comentarios.':
+    'Tell us what you would like to see in Ahorbit. We read every comment.',
   'Tu nombre (opcional)': 'Your name (optional)',
   'Tu correo (opcional)': 'Your email (optional)',
   '¿Qué te gustaría mejorar o agregar?': 'What would you like to improve or add?',
   'Enviar comentario': 'Send comment',
   'No se pudo enviar. Intenta más tarde.': 'Could not send. Try again later.',
   '¡Gracias! Recibimos tu comentario.': 'Thanks! We received your comment.',
-  'FinZen — Finanzas personales.': 'FinZen — Personal finance.',
+  'Ahorbit — Finanzas personales.': 'Ahorbit — Personal finance.',
 
   // Multimoneda
   'Moneda principal': 'Main currency',

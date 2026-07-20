@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/Button'
@@ -103,7 +103,7 @@ export function LandingPage() {
 
   const steps = [
     { icon: '🔗', title: t('Conecta tus cuentas'), text: t('Registra cuentas y tarjetas, o sincroniza tus movimientos desde el correo.') },
-    { icon: '🧾', title: t('Captura sin esfuerzo'), text: t('Escanea tickets y facturas con la cámara o sube un PDF; FinZen extrae los datos.') },
+    { icon: '🧾', title: t('Captura sin esfuerzo'), text: t('Escanea tickets y facturas con la cámara o sube un PDF; Ahorbit extrae los datos.') },
     { icon: '📊', title: t('Entiende tu dinero'), text: t('Mira tu balance, gastos por categoría y reportes claros en un solo lugar.') },
   ]
 
@@ -121,7 +121,7 @@ export function LandingPage() {
       {/* Barra superior */}
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
         <div className="flex items-center gap-2 text-lg font-bold">
-          <span>💰</span> FinZen
+          <span>💰</span> Ahorbit
         </div>
         <div className="flex items-center gap-3">
           <LanguageToggle />
@@ -221,14 +221,14 @@ export function LandingPage() {
       <section className="mx-auto max-w-2xl px-6 py-12">
         <h2 className="mb-2 text-center text-2xl font-bold">{t('¿Ideas para mejorar?')}</h2>
         <p className="mb-6 text-center text-sm text-slate-600 dark:text-slate-300">
-          {t('Cuéntanos qué te gustaría ver en FinZen. Leemos todos los comentarios.')}
+          {t('Cuéntanos qué te gustaría ver en Ahorbit. Leemos todos los comentarios.')}
         </p>
         <FeedbackForm />
       </section>
 
       {/* Footer */}
       <footer className="border-t border-slate-200 dark:border-slate-700 py-8 text-center text-xs text-slate-400 dark:text-slate-500">
-        <p>© {t('FinZen — Finanzas personales.')}</p>
+        <p>© {t('Ahorbit — Finanzas personales.')}</p>
       </footer>
     </div>
   )

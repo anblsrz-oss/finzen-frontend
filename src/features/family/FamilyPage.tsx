@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import {
@@ -275,7 +275,7 @@ function FamilyDetail({
                         setInviteNotice(
                           result.emailSent
                             ? t('Invitación enviada por correo.')
-                            : t('Invitación creada, pero no se pudo enviar el correo. La persona la verá igual al entrar a FinZen.'),
+                            : t('Invitación creada, pero no se pudo enviar el correo. La persona la verá igual al entrar a Ahorbit.'),
                         )
                       },
                       onError: (e: any) =>

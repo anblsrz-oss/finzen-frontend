@@ -3,13 +3,25 @@ import { supabase } from '@/lib/supabase'
 import { monthlyPayment } from '@/lib/installments'
 import type { TransactionRow, TxKind, TxSource, TransactionDeletionRow } from '@/types/db'
 
-interface TransactionFilter {
+export interface TransactionFilter {
   kind?: TxKind
-  accountId?: string
-  cardId?: string
-  categoryId?: string
+  accountIds?: string[]
+  cardIds?: string[]
+  categoryIds?: string[]
   startDate?: string
   endDate?: string
+  /** Búsqueda libre sobre concepto y notas. */
+  search?: string
+  pending?: boolean
+  minAmount?: number
+  maxAmount?: number
+}
+
+// PostgREST parsea la cadena de .or() con comas y paréntesis como separadores,
+// así que un término de búsqueda que los contenga rompe la query. Los quitamos
+// en vez de escaparlos: en un buscador no aportan y no vale romper la sintaxis.
+function sanitizeSearch(term: string): string {
+  return term.replace(/[,()\\]/g, ' ').trim()
 }
 
 export function useTransactions(
@@ -32,26 +44,38 @@ export function useTransactions(
       if (filter?.kind) {
         query = query.eq('kind', filter.kind)
       }
-      if (filter?.accountId) {
-        if (filter.kind === 'transfer') {
-          query = query.or(
-            `account_id.eq.${filter.accountId},to_account_id.eq.${filter.accountId}`,
-          )
-        } else {
-          query = query.eq('account_id', filter.accountId)
-        }
+      if (filter?.accountIds?.length) {
+        const list = filter.accountIds.join(',')
+        // Una transferencia toca dos cuentas: filtrar solo por account_id
+        // escondería las que llegan a la cuenta seleccionada.
+        query = query.or(`account_id.in.(${list}),to_account_id.in.(${list})`)
       }
-      if (filter?.cardId) {
-        query = query.eq('card_id', filter.cardId)
+      if (filter?.cardIds?.length) {
+        query = query.in('card_id', filter.cardIds)
       }
-      if (filter?.categoryId) {
-        query = query.eq('category_id', filter.categoryId)
+      if (filter?.categoryIds?.length) {
+        query = query.in('category_id', filter.categoryIds)
       }
       if (filter?.startDate) {
         query = query.gte('tx_date', filter.startDate)
       }
       if (filter?.endDate) {
         query = query.lte('tx_date', filter.endDate)
+      }
+      if (filter?.pending !== undefined) {
+        query = query.eq('pending', filter.pending)
+      }
+      if (filter?.minAmount !== undefined) {
+        query = query.gte('amount', filter.minAmount)
+      }
+      if (filter?.maxAmount !== undefined) {
+        query = query.lte('amount', filter.maxAmount)
+      }
+      if (filter?.search) {
+        const term = sanitizeSearch(filter.search)
+        if (term) {
+          query = query.or(`concept.ilike.%${term}%,notes.ilike.%${term}%`)
+        }
       }
 
       query = query.order('tx_date', { ascending: false })
@@ -63,6 +87,26 @@ export function useTransactions(
       const { data, error } = await query
       if (error) throw error
       return (data || []) as TransactionRow[]
+    },
+    enabled: !!userId,
+  })
+}
+
+// Total sin filtrar. El límite del plan Gratis se mide contra todo el
+// histórico: si se contaran solo las filas visibles, aplicar un filtro
+// desbloquearía el botón de "Nueva transacción".
+export function useTransactionsCount(userId?: string) {
+  return useQuery({
+    queryKey: ['transactions_count', userId],
+    queryFn: async () => {
+      if (!userId) return 0
+      const { count, error } = await supabase
+        .from('transactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .is('family_id', null)
+      if (error) throw error
+      return count ?? 0
     },
     enabled: !!userId,
   })
@@ -123,6 +167,7 @@ export function useCreateTransaction() {
     },
     onSuccess: (_data, input) => {
       queryClient.invalidateQueries({ queryKey: ['transactions', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['transactions_count', input.userId] })
       if (input.familyId) {
         queryClient.invalidateQueries({
           queryKey: ['family_transactions', input.familyId],
@@ -149,6 +194,7 @@ export function useDeleteTransaction() {
     },
     onSuccess: (_data, input) => {
       queryClient.invalidateQueries({ queryKey: ['transactions', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['transactions_count', input.userId] })
       queryClient.invalidateQueries({ queryKey: ['account_balances', input.userId] })
       queryClient.invalidateQueries({ queryKey: ['card_usage', input.userId] })
       queryClient.invalidateQueries({ queryKey: ['transaction_deletions', input.userId] })

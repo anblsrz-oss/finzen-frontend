@@ -32,7 +32,7 @@ function brandRamp(accent: string): Record<string, string> {
   }
 }
 
-const STYLE_ID = 'finzen-theme-colors'
+const STYLE_ID = 'ahorbit-theme-colors'
 
 // Aplica los colores como una hoja de estilo (idempotente). Pasar null limpia.
 export function applyThemeColors(colors: ThemeColors | null): void {

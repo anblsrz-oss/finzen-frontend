@@ -1,11 +1,14 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import {
   useTransactions,
+  useTransactionsCount,
   useDeleteTransaction,
   useTransactionDeletions,
 } from '@/hooks/useTransactions'
+import type { TransactionFilter } from '@/hooks/useTransactions'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useAccounts } from '@/hooks/useAccounts'
 import { useCards } from '@/hooks/useCards'
 import { useCategories } from '@/hooks/useCategories'
@@ -17,6 +20,12 @@ import { PremiumGate } from '@/components/ui/PremiumGate'
 import { Card } from '@/components/ui/Card'
 import { Modal } from '@/components/ui/Modal'
 import { TransactionForm } from './TransactionForm'
+import {
+  TransactionFilters,
+  EMPTY_FILTERS,
+  countActiveFilters,
+} from './TransactionFilters'
+import type { FilterState } from './TransactionFilters'
 import { formatMoney, formatDate } from '@/lib/format'
 import { Money } from '@/components/ui/Money'
 import type { TransactionRow } from '@/types/db'
@@ -31,7 +40,46 @@ export function TransactionsPage() {
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | null>(null)
 
-  const transactionsQuery = useTransactions(userId)
+  const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS)
+
+  // El texto se debounce; el resto de los filtros se aplican de inmediato.
+  const debouncedSearch = useDebouncedValue(filters.search, 300)
+
+  // Memoizado: el objeto va dentro del queryKey de useTransactions, y una
+  // identidad nueva en cada render refetchearía la lista sin motivo.
+  const txFilter = useMemo<TransactionFilter>(() => {
+    const parseAmount = (v: string) => {
+      const n = Number(v)
+      return v.trim() !== '' && Number.isFinite(n) ? n : undefined
+    }
+    return {
+      kind: filters.kind || undefined,
+      accountIds: filters.accountIds,
+      cardIds: filters.cardIds,
+      categoryIds: filters.categoryIds,
+      startDate: filters.startDate || undefined,
+      endDate: filters.endDate || undefined,
+      search: debouncedSearch.trim() || undefined,
+      pending:
+        filters.status === '' ? undefined : filters.status === 'pending',
+      minAmount: parseAmount(filters.minAmount),
+      maxAmount: parseAmount(filters.maxAmount),
+    }
+  }, [
+    filters.kind,
+    filters.accountIds,
+    filters.cardIds,
+    filters.categoryIds,
+    filters.startDate,
+    filters.endDate,
+    filters.status,
+    filters.minAmount,
+    filters.maxAmount,
+    debouncedSearch,
+  ])
+
+  const transactionsQuery = useTransactions(userId, txFilter)
+  const totalCountQuery = useTransactionsCount(userId)
   const accountsQuery = useAccounts(userId)
   const cardsQuery = useCards(userId)
   const categoriesQuery = useCategories(userId)
@@ -45,6 +93,8 @@ export function TransactionsPage() {
   const familyCardsQuery = useFamilyCards(familyId)
 
   const transactions = transactionsQuery.data || []
+  // Contra el límite del plan se mide el histórico completo, no lo filtrado.
+  const totalCount = totalCountQuery.data ?? 0
   const accounts = accountsQuery.data || []
   const cards = cardsQuery.data || []
   const categories = categoriesQuery.data || []
@@ -104,7 +154,7 @@ export function TransactionsPage() {
               <Button onClick={() => setShowForm(false)}>{t('Cancelar')}</Button>
             ) : (
               <PremiumGate
-                count={transactions.length}
+                count={totalCount}
                 limit={transactionLimit}
                 lockedTooltip={t('Plan gratis: máximo {{n}} transacciones. Actualiza a Premium para registrar más.', { n: transactionLimit })}
               >
@@ -117,7 +167,7 @@ export function TransactionsPage() {
         }
       />
 
-      {!showForm && transactionLimit !== Infinity && transactions.length >= transactionLimit && (
+      {!showForm && transactionLimit !== Infinity && totalCount >= transactionLimit && (
         <Card className="mb-4 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
           <p className="text-sm text-amber-800 dark:text-amber-200">
             {t('Plan gratis: máximo {{n}} transacciones. Actualiza a Premium para registrar más.', { n: transactionLimit })}
@@ -177,10 +227,23 @@ export function TransactionsPage() {
         </Card>
       )}
 
+      <TransactionFilters
+        value={filters}
+        onChange={setFilters}
+        accounts={accounts}
+        cards={cards}
+        categories={categories}
+        resultCount={transactions.length}
+      />
+
       {transactions.length === 0 ? (
         <Card className="border-dashed text-center">
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {t('Sin transacciones. Registra una para empezar.')}
+            {/* "No hay nada" y "no hay nada que cumpla el filtro" son
+                situaciones distintas: la segunda tiene salida. */}
+            {countActiveFilters(filters) > 0
+              ? t('Ninguna transacción coincide con los filtros.')
+              : t('Sin transacciones. Registra una para empezar.')}
           </p>
         </Card>
       ) : (

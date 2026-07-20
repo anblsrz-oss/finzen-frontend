@@ -1,5 +1,5 @@
--- =====================================================================
--- FinZen — Multimoneda: moneda principal + tipo de cambio (fix de balance)
+﻿-- =====================================================================
+-- Ahorbit — Multimoneda: moneda principal + tipo de cambio (fix de balance)
 -- Antes, las vistas de saldo y los reportes sumaban `amount` ignorando la
 -- moneda, así que un gasto en USD se sumaba como si fuera MXN. Ahora cada
 -- transacción guarda `base_amount` (convertida a la moneda principal del

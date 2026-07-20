@@ -1,5 +1,5 @@
--- =====================================================================
--- FinZen — Historial de eliminación de transacciones (Fase 8.1)
+﻿-- =====================================================================
+-- Ahorbit — Historial de eliminación de transacciones (Fase 8.1)
 -- Al eliminar una transacción se guarda un snapshot + motivo en una tabla de
 -- auditoría y luego se borra la transacción. El balance (vista account_balances)
 -- se revierte automáticamente porque deja de sumar la transacción borrada.

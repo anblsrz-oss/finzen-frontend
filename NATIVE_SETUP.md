@@ -1,4 +1,4 @@
-# FinZen — Guía de app nativa (Capacitor) y sincronización de datos
+﻿# Ahorbit — Guía de app nativa (Capacitor) y sincronización de datos
 
 Fase 8. La PWA React se empaqueta como app nativa con **Capacitor** y se añaden
 tres vías propias de ingesta de movimientos (import CSV, correo, SMS) más el
@@ -43,7 +43,7 @@ npx capacitor-assets generate --iconBackgroundColor '#0f766e' --iconBackgroundCo
 ## 4. Login con Google en la app (deep link)
 
 El código ya cambia solo según plataforma (ver [src/lib/nativeAuth.ts](src/lib/nativeAuth.ts)).
-Falta registrar el esquema `com.finzen.app://auth-callback` en cada plataforma:
+Falta registrar el esquema `com.ahorbit.app://auth-callback` en cada plataforma:
 
 **Android** — `android/app/src/main/AndroidManifest.xml`, dentro de la `<activity>`:
 
@@ -52,7 +52,7 @@ Falta registrar el esquema `com.finzen.app://auth-callback` en cada plataforma:
   <action android:name="android.intent.action.VIEW" />
   <category android:name="android.intent.category.DEFAULT" />
   <category android:name="android.intent.category.BROWSABLE" />
-  <data android:scheme="com.finzen.app" android:host="auth-callback" />
+  <data android:scheme="com.ahorbit.app" android:host="auth-callback" />
 </intent-filter>
 ```
 
@@ -63,14 +63,14 @@ Falta registrar el esquema `com.finzen.app://auth-callback` en cada plataforma:
 <array>
   <dict>
     <key>CFBundleURLSchemes</key>
-    <array><string>com.finzen.app</string></array>
+    <array><string>com.ahorbit.app</string></array>
   </dict>
 </array>
 ```
 
 **Supabase** (Authentication → URL Configuration → Redirect URLs) y **Google Cloud**
 (OAuth client → Authorized redirect URIs): añadir
-`com.finzen.app://auth-callback` junto con las URLs de Vercel ya existentes.
+`com.ahorbit.app://auth-callback` junto con las URLs de Vercel ya existentes.
 
 ## 5. Sincronizar correo (Gmail) — multiplataforma
 

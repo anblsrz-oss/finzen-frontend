@@ -1,5 +1,5 @@
--- =====================================================================
--- FinZen — MVP: cashback en tarjetas de crédito.
+﻿-- =====================================================================
+-- Ahorbit — MVP: cashback en tarjetas de crédito.
 -- Marca si una tarjeta ofrece cashback (sin porcentaje, ya que varía por
 -- tipo de transacción). El cashback recibido se registra como una
 -- transacción de ingreso con la categoría de sistema "Cashback".

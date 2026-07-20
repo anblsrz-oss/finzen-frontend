@@ -1,10 +1,10 @@
-import type { CapacitorConfig } from '@capacitor/cli'
+﻿import type { CapacitorConfig } from '@capacitor/cli'
 
 // Configuración de Capacitor: envuelve la PWA (carpeta dist) como app nativa.
 // Flujo: `npm run build` -> `npx cap sync` -> `npx cap open android|ios`.
 const config: CapacitorConfig = {
-  appId: 'com.finzen.app',
-  appName: 'FinZen',
+  appId: 'com.ahorbit.app',
+  appName: 'Ahorbit',
   webDir: 'dist',
   // Esquema propio para el deep link del callback de OAuth (ver src/lib/nativeAuth.ts).
   plugins: {

@@ -1,5 +1,5 @@
--- =====================================================================
--- FinZen — Líneas de crédito compartidas.
+﻿-- =====================================================================
+-- Ahorbit — Líneas de crédito compartidas.
 -- Varias tarjetas del mismo banco suelen compartir UNA sola línea de
 -- crédito: el límite es el mismo para todas (dos tarjetas Nu con $20,000
 -- no dan $40,000) y también comparten día de corte y día de pago.

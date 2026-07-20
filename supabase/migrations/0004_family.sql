@@ -1,4 +1,4 @@
--- FinZen — Plan familiar (Premium).
+﻿-- Ahorbit — Plan familiar (Premium).
 -- El jefe de familia (premium) comparte tarjetas de crédito propias; los
 -- miembros registran gastos en ellas. El límite de crédito SOLO lo ve el dueño.
 -- Los gastos familiares viven aparte de las finanzas personales de cada quien.

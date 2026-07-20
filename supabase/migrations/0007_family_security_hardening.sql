@@ -1,4 +1,4 @@
--- FinZen — Hardening de seguridad para el plan familiar, según supabase advisors.
+﻿-- Ahorbit — Hardening de seguridad para el plan familiar, según supabase advisors.
 -- 1) jwt_email() no tenía search_path fijo (function_search_path_mutable).
 -- 2) Los helpers quedaban ejecutables por 'anon' vía RPC porque el REVOKE
 --    original solo quitaba el privilegio a 'anon', pero PUBLIC (que incluye a

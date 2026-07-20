@@ -14,6 +14,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { useSettings, resolveIsDark } from '@/store/useSettings'
 import type { CategoryChartType } from '@/store/useSettings'
+import { useMoneyFormat } from '@/components/ui/Money'
 import { resolveChartColor } from '@/lib/categoryColors'
 
 interface CategoryData {
@@ -28,13 +29,16 @@ interface CategoryPieChartProps {
   // Si no se pasan, se usan las preferencias guardadas en settings.
   type?: CategoryChartType
   palette?: string
+  currency?: string
 }
 
-export function CategoryPieChart({ data, type, palette }: CategoryPieChartProps) {
+export function CategoryPieChart({ data, type, palette, currency = 'MXN' }: CategoryPieChartProps) {
   const { t } = useTranslation()
   const theme = useSettings((s) => s.theme)
   const prefType = useSettings((s) => s.categoryChartType)
   const prefPalette = useSettings((s) => s.chartPalette)
+  const config = useSettings((s) => s.chartConfigs['category'])
+  const money = useMoneyFormat()
   const chartType = type ?? prefType
   const paletteKey = palette ?? prefPalette
   const dark = resolveIsDark(theme)
@@ -42,18 +46,22 @@ export function CategoryPieChart({ data, type, palette }: CategoryPieChartProps)
   if (data.length === 0) {
     return (
       <div className="flex h-64 items-center justify-center text-slate-500 dark:text-slate-400">
-        Sin gastos en este período
+        {t('Sin gastos en este período')}
       </div>
     )
   }
 
-  // "Por categoría" usa el color propio; una paleta fija sobreescribe todo.
-  // El nombre viene en español desde la BD: se traduce al mostrarlo.
-  const chartData = data.map((d, i) => ({
-    name: `${d.icon} ${t(d.name)}`,
-    value: d.total,
-    color: resolveChartColor(d.color, i, paletteKey),
-  }))
+  // "Por categoría" usa el color propio; una paleta fija sobreescribe todo; el
+  // override por punto (config.pointColors, indexado por el nombre crudo de la
+  // categoría) manda sobre ambos. Se ocultan las categorías en hiddenSeries.
+  const hidden = config?.hiddenSeries ?? []
+  const chartData = data
+    .filter((d) => !hidden.includes(d.name))
+    .map((d, i) => ({
+      name: `${d.icon} ${t(d.name)}`,
+      value: d.total,
+      color: config?.pointColors?.[d.name] ?? resolveChartColor(d.color, i, paletteKey),
+    }))
 
   const total = chartData.reduce((sum, d) => sum + d.value, 0)
   const axisColor = dark ? '#94a3b8' : '#475569'
@@ -62,7 +70,7 @@ export function CategoryPieChart({ data, type, palette }: CategoryPieChartProps)
   const tooltip = (
     <Tooltip
       formatter={(value: number) =>
-        `$${value.toLocaleString()} (${Math.round((value / total) * 100)}%)`
+        `${money(value, currency)} (${Math.round((value / total) * 100)}%)`
       }
       contentStyle={{
         backgroundColor: dark ? '#1e293b' : '#ffffff',

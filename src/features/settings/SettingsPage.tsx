@@ -7,6 +7,8 @@ import { useStartCheckout, useOpenBillingPortal } from '@/hooks/useBilling'
 import { useUpdateMainCurrency } from '@/hooks/useProfile'
 import { useEntitlements } from '@/hooks/useAppConfig'
 import { CURRENCIES } from '@/lib/format'
+import { APK_URL, APP_VERSION } from '@/lib/appUpdate'
+import { isNative } from '@/lib/nativeAuth'
 import { PhoneSection } from './PhoneSection'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
@@ -292,6 +294,29 @@ export function SettingsPage() {
             </div>
           )}
         </Card>
+
+        {/* Aplicación. Dentro del APK no tiene sentido ofrecer descargarlo:
+            ahí el que avisa de versiones nuevas es NativeUpdatePrompt. */}
+        {!isNative() && (
+          <Card>
+            <p className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">
+              📲 {t('Aplicación')}
+            </p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {t('Instala Ahorbit en tu teléfono y llévala contigo.')}
+                <span className="block text-xs text-slate-400 dark:text-slate-500">
+                  {t('Versión {{version}}', { version: APP_VERSION })}
+                </span>
+              </p>
+              <a href={APK_URL} target="_blank" rel="noopener noreferrer">
+                <Button size="sm" variant="secondary">
+                  ⬇️ {t('Descargar app (Android)')}
+                </Button>
+              </a>
+            </div>
+          </Card>
+        )}
 
         {/* Sesión */}
         <Card>

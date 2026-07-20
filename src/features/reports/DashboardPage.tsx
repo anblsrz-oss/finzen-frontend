@@ -5,13 +5,19 @@ import {
   useMonthlyTotals,
   useCategoryTotals,
 } from '@/hooks/useReports'
+import { useCreditUsageBreakdown } from '@/hooks/useCreditLines'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
+import { ChartCard } from '@/components/charts/ChartCard'
+import { CreditUsageChart } from '@/components/charts/CreditUsageChart'
 import { IncomeExpenseChart } from '@/components/charts/IncomeExpenseChart'
 import { CategoryPieChart } from '@/components/charts/CategoryPieChart'
 import { ChartControls } from '@/components/charts/ChartControls'
 import { Money } from '@/components/ui/Money'
 import { monthStartISO, todayISO } from '@/lib/dates'
+import { DEFAULT_ORDER, reconcileOrder } from '@/lib/charts'
+import type { ChartId } from '@/lib/charts'
+import { useSettings } from '@/store/useSettings'
 
 export function DashboardPage() {
   const { t } = useTranslation()
@@ -32,6 +38,52 @@ export function DashboardPage() {
   const summary = summaryQuery.data
   const monthly = monthlyQuery.data || []
   const categories = categoryQuery.data || []
+
+  // Estado puntual, no histórico: no depende del rango de fechas de arriba.
+  const { data: creditUsage } = useCreditUsageBreakdown(userId)
+
+  const savedOrder = useSettings((s) => s.chartOrder.dashboard)
+
+  // Gráficos con datos, en orden default; luego reconciliados con lo guardado.
+  const available = DEFAULT_ORDER.dashboard.filter((id) => {
+    if (id === 'creditUsage') return creditUsage.length > 0
+    if (id === 'incomeExpense') return monthly.length > 0
+    if (id === 'category') return categories.length > 0
+    return false
+  })
+  const order = reconcileOrder(savedOrder, available)
+
+  const renderChart = (id: ChartId) => {
+    switch (id) {
+      case 'creditUsage':
+        return (
+          <ChartCard key={id} chartId={id} page="dashboard" title={t('Uso de línea de crédito')} available={available}>
+            <CreditUsageChart data={creditUsage} />
+          </ChartCard>
+        )
+      case 'incomeExpense':
+        return (
+          <ChartCard key={id} chartId={id} page="dashboard" title={t('Ingresos vs Egresos')} available={available}>
+            <IncomeExpenseChart data={monthly} currency={mainCurrency} />
+          </ChartCard>
+        )
+      case 'category':
+        return (
+          <ChartCard
+            key={id}
+            chartId={id}
+            page="dashboard"
+            title={t('Gastos por Categoría')}
+            available={available}
+            points={categories.map((c) => c.name)}
+          >
+            <CategoryPieChart data={categories} currency={mainCurrency} />
+          </ChartCard>
+        )
+      default:
+        return null
+    }
+  }
 
   return (
     <>
@@ -81,25 +133,10 @@ export function DashboardPage() {
             <ChartControls />
           </Card>
         )}
-        {monthly.length > 0 && (
-          <Card>
-            <h3 className="mb-4 font-semibold text-slate-800 dark:text-slate-100">
-              {t('Ingresos vs Egresos')}
-            </h3>
-            <IncomeExpenseChart data={monthly} />
-          </Card>
-        )}
 
-        {categories.length > 0 && (
-          <Card>
-            <h3 className="mb-4 font-semibold text-slate-800 dark:text-slate-100">
-              {t('Gastos por Categoría')}
-            </h3>
-            <CategoryPieChart data={categories} />
-          </Card>
-        )}
+        {order.map((id) => renderChart(id))}
 
-        {!monthly.length && !categories.length && (
+        {!monthly.length && !categories.length && !creditUsage.length && (
           <Card className="border-dashed text-center">
             <p className="text-sm text-slate-500 dark:text-slate-400">
               {t('Sin transacciones este mes.')}

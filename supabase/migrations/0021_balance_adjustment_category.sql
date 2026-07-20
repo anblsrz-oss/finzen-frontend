@@ -1,5 +1,5 @@
--- =====================================================================
--- FinZen — Categoría de sistema "Ajuste de saldo".
+﻿-- =====================================================================
+-- Ahorbit — Categoría de sistema "Ajuste de saldo".
 -- Se usa al registrar un MSI que arrancó en un periodo anterior: si el
 -- usuario confirma que ya pagó N mensualidades, se genera un ingreso de
 -- ajuste con esa fecha para que el balance histórico no quede negativo

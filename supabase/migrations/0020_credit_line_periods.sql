@@ -1,5 +1,5 @@
--- =====================================================================
--- FinZen — Fechas reales de corte y pago por periodo.
+﻿-- =====================================================================
+-- Ahorbit — Fechas reales de corte y pago por periodo.
 -- Los días de corte y pago de una línea son nominales (día 15, día 5),
 -- pero varios bancos los recorren uno o dos días cuando caen en día
 -- inhábil. Cuando la línea tiene `dates_may_shift`, al llegar la fecha

@@ -1,5 +1,5 @@
--- =====================================================================
--- FinZen — Migración de ingesta de movimientos (Fase 8)
+﻿-- =====================================================================
+-- Ahorbit — Migración de ingesta de movimientos (Fase 8)
 -- Extiende `transactions` con origen/dedupe/pendiente + tablas de import,
 -- staging, reglas de parseo y conexiones de agregador (andamiaje).
 -- Pegar completo en Supabase -> SQL Editor -> Run.

@@ -1,5 +1,5 @@
--- =====================================================================
--- FinZen — MVP 3 (gestión): eliminar familia + etiqueta de beca.
+﻿-- =====================================================================
+-- Ahorbit — MVP 3 (gestión): eliminar familia + etiqueta de beca.
 -- Re-ejecutable (IF NOT EXISTS / CREATE OR REPLACE).
 -- =====================================================================
 

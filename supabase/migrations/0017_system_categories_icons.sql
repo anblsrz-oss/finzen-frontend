@@ -1,5 +1,5 @@
--- =====================================================================
--- FinZen — categorías del sistema: iconos y edición por admin.
+﻿-- =====================================================================
+-- Ahorbit — categorías del sistema: iconos y edición por admin.
 --
 -- 1) Los iconos de las categorías de sistema se habían sembrado con nombres
 --    de iconos Lucide ('wallet', 'car', ...) que se renderizaban como texto

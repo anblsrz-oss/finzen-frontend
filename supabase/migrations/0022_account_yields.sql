@@ -1,5 +1,5 @@
--- =====================================================================
--- FinZen — Rendimientos: tasa anual, tipo y retención de ISR.
+﻿-- =====================================================================
+-- Ahorbit — Rendimientos: tasa anual, tipo y retención de ISR.
 -- Bancos y SOFIPOs mexicanas publican la tasa ANUAL (GAT nominal), no la
 -- mensual, así que hasta ahora el usuario tenía que dividir a mano. Se
 -- guarda el periodo en que se capturó para poder mostrarla como la

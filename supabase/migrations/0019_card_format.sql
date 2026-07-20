@@ -1,5 +1,5 @@
--- =====================================================================
--- FinZen — Tarjetas físicas y virtuales.
+﻿-- =====================================================================
+-- Ahorbit — Tarjetas físicas y virtuales.
 -- El formato es independiente del tipo: hay tarjetas virtuales tanto de
 -- débito como de crédito. Una tarjeta virtual no trae marca impresa, así
 -- que en ese caso `brand` queda null y la UI muestra un distintivo

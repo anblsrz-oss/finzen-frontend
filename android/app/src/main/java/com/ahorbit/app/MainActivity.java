@@ -1,4 +1,4 @@
-package com.finzen.app;
+package com.ahorbit.app;
 
 import com.getcapacitor.BridgeActivity;
 

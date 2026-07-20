@@ -10,6 +10,7 @@ import { useEntitlements } from '@/hooks/useAppConfig'
 import { toBaseAmount } from '@/lib/fx'
 import { CURRENCIES, formatMoney, formatDate } from '@/lib/format'
 import { todayISO, formatMonthLabel } from '@/lib/dates'
+import { BALANCE_ADJUSTMENT_CATEGORY } from '@/lib/charts'
 import {
   monthlyPayment,
   elapsedInstallments,
@@ -134,7 +135,7 @@ export function TransactionForm({
 
   // Categoría de sistema donde cae el ajuste por mensualidades ya pagadas.
   const adjustmentCategoryId = categories.find(
-    (c) => c.is_system && c.name === 'Ajuste de saldo',
+    (c) => c.is_system && c.name === BALANCE_ADJUSTMENT_CATEGORY,
   )?.id
 
   const myUserId = session?.user?.id

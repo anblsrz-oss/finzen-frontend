@@ -1,4 +1,4 @@
-// Crea una sesión de Stripe Checkout para la suscripción Premium de FinZen.
+﻿// Crea una sesión de Stripe Checkout para la suscripción Premium de Ahorbit.
 // El usuario autenticado (JWT) inicia el pago; al completarse, el webhook
 // stripe-webhook marca is_premium = true.
 //

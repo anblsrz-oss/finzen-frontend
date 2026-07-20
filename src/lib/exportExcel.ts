@@ -1,4 +1,4 @@
-// Los módulos pesados (exceljs) se cargan de forma diferida (dynamic import)
+﻿// Los módulos pesados (exceljs) se cargan de forma diferida (dynamic import)
 // para no inflar el bundle inicial ni el precache del PWA.
 import type ExcelJSNS from 'exceljs'
 
@@ -60,7 +60,7 @@ export async function exportReportToExcel(opts: ExportOptions): Promise<void> {
   const { saveAs } = await import('file-saver')
 
   const wb = new ExcelJS.Workbook()
-  wb.creator = 'FinZen'
+  wb.creator = 'Ahorbit'
 
   if (opts.mode !== 'charts') {
     // --- Hoja: Por mes ---

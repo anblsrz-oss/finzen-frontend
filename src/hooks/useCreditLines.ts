@@ -1,9 +1,11 @@
 // Líneas de crédito: el límite y las fechas de corte/pago que varias
 // tarjetas del mismo banco comparten. Ver 0018_credit_lines.sql.
 
+import { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { CreditLineRow, CreditLineUsageRow } from '@/types/db'
+import { useCards, useCardUsage } from '@/hooks/useCards'
+import type { CreditLineRow, CreditLineUsageRow, CardUsageRow } from '@/types/db'
 
 export function useCreditLines(userId?: string) {
   return useQuery({
@@ -36,6 +38,94 @@ export function useCreditLineUsage(userId?: string) {
     },
     enabled: !!userId,
   })
+}
+
+// Uso de crédito listo para graficar.
+//
+// El límite vive en la línea, no en la tarjeta, y varias tarjetas comparten la
+// misma línea. Por eso agrupamos por línea (una barra = un límite real) y
+// colgamos los nombres de las tarjetas que la comparten. Las tarjetas de
+// crédito sin línea asignada caen a su propia fila vía card_usage.
+export interface CreditUsageItem {
+  id: string
+  name: string
+  currency: string
+  creditLimit: number
+  used: number
+  available: number
+  /** Porcentaje de utilización 0-100. */
+  percent: number
+  /** Tarjetas que comparten esta línea. */
+  cards: string[]
+}
+
+export function useCreditUsageBreakdown(userId?: string) {
+  const linesQuery = useCreditLineUsage(userId)
+  const cardsQuery = useCards(userId)
+  const cardUsageQuery = useCardUsage(userId)
+
+  const lines = linesQuery.data
+  const cards = cardsQuery.data
+  const cardUsage = cardUsageQuery.data
+
+  const data = useMemo<CreditUsageItem[]>(() => {
+    const build = (
+      id: string,
+      name: string,
+      currency: string,
+      creditLimit: number,
+      used: number,
+      available: number,
+      cardNames: string[],
+    ): CreditUsageItem => ({
+      id,
+      name,
+      currency,
+      creditLimit,
+      used,
+      available,
+      percent: creditLimit > 0 ? (used / creditLimit) * 100 : 0,
+      cards: cardNames,
+    })
+
+    const items = (lines || []).map((l) =>
+      build(
+        l.credit_line_id,
+        l.name,
+        l.currency,
+        l.credit_limit,
+        l.used,
+        l.available,
+        (cards || [])
+          .filter((c) => c.credit_line_id === l.credit_line_id)
+          .map((c) => c.name),
+      ),
+    )
+
+    // Tarjetas de crédito huérfanas (sin línea): su límite legado sigue en
+    // card_usage, así que se grafican por separado en vez de desaparecer.
+    const orphanIds = new Set(
+      (cards || [])
+        .filter((c) => c.type === 'credit' && !c.credit_line_id)
+        .map((c) => c.id),
+    )
+    ;(cardUsage as CardUsageRow[] | undefined)
+      ?.filter((u) => orphanIds.has(u.card_id) && (u.credit_limit ?? 0) > 0)
+      .forEach((u) => {
+        items.push(
+          build(u.card_id, u.name, u.currency, u.credit_limit ?? 0, u.used, u.available, []),
+        )
+      })
+
+    // Lo más comprometido primero: es lo que el usuario necesita ver.
+    return items.sort((a, b) => b.percent - a.percent)
+  }, [lines, cards, cardUsage])
+
+  return {
+    data,
+    isLoading:
+      linesQuery.isLoading || cardsQuery.isLoading || cardUsageQuery.isLoading,
+  }
 }
 
 export function useCreateCreditLine() {

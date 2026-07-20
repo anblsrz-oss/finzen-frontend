@@ -1,4 +1,4 @@
--- FinZen — Facturación (Stripe) y teléfono.
+﻿-- Ahorbit — Facturación (Stripe) y teléfono.
 -- Agrega a profiles el customer de Stripe, la vigencia de premium y el teléfono.
 -- Sin cambios de RLS: profiles sigue siendo select-own; estas columnas solo se
 -- escriben desde el service role (edge functions), nunca desde el cliente.

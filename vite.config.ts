@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+﻿import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath, URL } from 'node:url'
@@ -17,8 +17,8 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'FinZen',
-        short_name: 'FinZen',
+        name: 'Ahorbit',
+        short_name: 'Ahorbit',
         description: 'Control y organización de tus finanzas personales',
         theme_color: '#0f766e',
         background_color: '#ffffff',

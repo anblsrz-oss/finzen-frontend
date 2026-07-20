@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useEntitlements } from '@/hooks/useAppConfig'
@@ -6,19 +6,27 @@ import {
   useTransactionsSummary,
   useMonthlyTotals,
   useCategoryTotals,
+  useCardAccountTotals,
 } from '@/hooks/useReports'
 import { useCategories } from '@/hooks/useCategories'
+import { useCreditUsageBreakdown } from '@/hooks/useCreditLines'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Select } from '@/components/ui/Select'
+import { ChartCard } from '@/components/charts/ChartCard'
 import { IncomeExpenseChart } from '@/components/charts/IncomeExpenseChart'
 import { CategoryPieChart } from '@/components/charts/CategoryPieChart'
+import { BreakdownBarChart } from '@/components/charts/BreakdownBarChart'
+import { CreditUsageChart } from '@/components/charts/CreditUsageChart'
 import { ChartControls } from '@/components/charts/ChartControls'
 import { Money } from '@/components/ui/Money'
 import { formatDate } from '@/lib/format'
 import { monthStartISO, todayISO } from '@/lib/dates'
+import { CHART_META, DEFAULT_ORDER, reconcileOrder } from '@/lib/charts'
+import type { ChartId } from '@/lib/charts'
+import { useSettings } from '@/store/useSettings'
 import { exportReportToExcel } from '@/lib/exportExcel'
 import type { ExportMode } from '@/lib/exportExcel'
 
@@ -26,20 +34,26 @@ export function ReportsPage() {
   const { t } = useTranslation()
   const { session, profile } = useAuth()
   const userId = session?.user?.id
-  const incomeExpenseRef = useRef<HTMLDivElement>(null)
-  const categoryRef = useRef<HTMLDivElement>(null)
+  // Un ref por gráfico, indexado por su ChartId, para capturar el PNG al exportar.
+  const chartRefs = useRef<Partial<Record<ChartId, HTMLDivElement | null>>>({})
   const [exportMode, setExportMode] = useState<ExportMode>('both')
   const [exporting, setExporting] = useState(false)
   const [startDate, setStartDate] = useState(monthStartISO())
   const [endDate, setEndDate] = useState(todayISO())
 
-  // En Gratis, solo mes actual
-  const filters =
-    profile?.is_premium ? { startDate, endDate } : { startDate, endDate }
+  // El rango se aplica siempre; lo que está gateado por Premium es la UI del
+  // filtro (canUseReportsFilters), no el cálculo. Sin filtro visible, startDate
+  // y endDate se quedan en el mes actual, que es el comportamiento del plan Gratis.
+  //
+  // Memoizado: forma parte del queryKey de las tres queries, y un objeto nuevo
+  // en cada render las invalidaría en cascada.
+  const filters = useMemo(() => ({ startDate, endDate }), [startDate, endDate])
 
   const summaryQuery = useTransactionsSummary(userId, filters)
   const monthlyQuery = useMonthlyTotals(userId, filters)
   const categoryQuery = useCategoryTotals(userId, filters)
+  const { data: breakdown } = useCardAccountTotals(userId, filters)
+  const { data: creditUsage } = useCreditUsageBreakdown(userId)
 
   const summary = summaryQuery.data
   const monthly = monthlyQuery.data || []
@@ -47,13 +61,74 @@ export function ReportsPage() {
   const mainCurrency = profile?.main_currency ?? 'MXN'
   const { canUseReportsFilters } = useEntitlements()
 
+  const savedOrder = useSettings((s) => s.chartOrder.reports)
+  const chartConfigs = useSettings((s) => s.chartConfigs)
+
   // Mapa id→categoría para nombrar los movimientos exportados.
   const categoriesQuery = useCategories(userId)
   const categoryById = new Map(
     (categoriesQuery.data || []).map((c) => [c.id, c]),
   )
 
-  const hasData = monthly.length > 0 || categories.length > 0
+  // Gráficos con datos, en orden default; luego reconciliados con lo guardado.
+  const available = DEFAULT_ORDER.reports.filter((id) => {
+    if (id === 'incomeExpense') return monthly.length > 0
+    if (id === 'category') return categories.length > 0
+    if (id === 'byCard') return breakdown.byCard.length > 0
+    if (id === 'byAccount') return breakdown.byAccount.length > 0
+    if (id === 'creditUsage') return creditUsage.length > 0
+    return false
+  })
+  const order = reconcileOrder(savedOrder, available)
+  const hasData = available.length > 0
+
+  const setRef = (id: ChartId) => (el: HTMLDivElement | null) => {
+    chartRefs.current[id] = el
+  }
+
+  const renderChart = (id: ChartId) => {
+    const common = { chartId: id, page: 'reports' as const, available, exportable: true }
+    switch (id) {
+      case 'incomeExpense':
+        return (
+          <ChartCard key={id} {...common} title={t('Ingresos vs Egresos')} ref={setRef(id)}>
+            <IncomeExpenseChart data={monthly} currency={mainCurrency} />
+          </ChartCard>
+        )
+      case 'category':
+        return (
+          <ChartCard
+            key={id}
+            {...common}
+            title={t('Gastos por Categoría')}
+            points={categories.map((c) => c.name)}
+            ref={setRef(id)}
+          >
+            <CategoryPieChart data={categories} currency={mainCurrency} />
+          </ChartCard>
+        )
+      case 'byCard':
+        return (
+          <ChartCard key={id} {...common} title={t('Ingresos y Egresos por Tarjeta')} ref={setRef(id)}>
+            <BreakdownBarChart data={breakdown.byCard} currency={mainCurrency} chartId={id} />
+          </ChartCard>
+        )
+      case 'byAccount':
+        return (
+          <ChartCard key={id} {...common} title={t('Ingresos y Egresos por Cuenta')} ref={setRef(id)}>
+            <BreakdownBarChart data={breakdown.byAccount} currency={mainCurrency} chartId={id} />
+          </ChartCard>
+        )
+      case 'creditUsage':
+        return (
+          <ChartCard key={id} {...common} title={t('Uso de línea de crédito')} ref={setRef(id)}>
+            <CreditUsageChart data={creditUsage} />
+          </ChartCard>
+        )
+      default:
+        return null
+    }
+  }
 
   const handleExport = async () => {
     setExporting(true)
@@ -78,9 +153,15 @@ export function ReportsPage() {
           }
         })
 
+      // Solo los gráficos marcados para exportar (check en la esquina), en el
+      // orden en que se muestran.
+      const charts = order
+        .filter((id) => chartConfigs[id]?.export !== false)
+        .map((id) => ({ title: t(CHART_META[id].titleKey), el: chartRefs.current[id] ?? null }))
+
       await exportReportToExcel({
         mode: exportMode,
-        fileName: `finzen-reporte-${startDate}_a_${endDate}.xlsx`,
+        fileName: `ahorbit-reporte-${startDate}_a_${endDate}.xlsx`,
         monthly: monthly.map((m) => ({
           monthLabel: m.monthLabel,
           income: m.income,
@@ -92,10 +173,7 @@ export function ReportsPage() {
           total: c.total,
         })),
         transactions,
-        charts: [
-          { title: t('Ingresos vs Egresos'), el: incomeExpenseRef.current },
-          { title: t('Gastos por Categoría'), el: categoryRef.current },
-        ],
+        charts,
       })
     } catch (err: any) {
       console.error('Error al exportar a Excel:', err)
@@ -191,29 +269,10 @@ export function ReportsPage() {
             </div>
           </Card>
         )}
-        {monthly.length > 0 && (
-          <Card>
-            <h3 className="mb-4 font-semibold text-slate-800 dark:text-slate-100">
-              {t('Ingresos vs Egresos')}
-            </h3>
-            <div ref={incomeExpenseRef} className="bg-white dark:bg-slate-800">
-              <IncomeExpenseChart data={monthly} />
-            </div>
-          </Card>
-        )}
 
-        {categories.length > 0 && (
-          <Card>
-            <h3 className="mb-4 font-semibold text-slate-800 dark:text-slate-100">
-              {t('Gastos por Categoría')}
-            </h3>
-            <div ref={categoryRef} className="bg-white dark:bg-slate-800">
-              <CategoryPieChart data={categories} />
-            </div>
-          </Card>
-        )}
+        {order.map((id) => renderChart(id))}
 
-        {!monthly.length && !categories.length && (
+        {!hasData && (
           <Card className="border-dashed text-center">
             <p className="text-sm text-slate-500 dark:text-slate-400">
               {t('Sin transacciones en este período.')}

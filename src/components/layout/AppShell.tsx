@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useSettings } from '@/store/useSettings'
+import { APK_URL } from '@/lib/appUpdate'
+import { isNative } from '@/lib/nativeAuth'
 
 interface NavItem {
   to: string
@@ -76,7 +78,7 @@ export function AppShell() {
       <aside className="hidden w-60 flex-col border-r border-slate-200 dark:border-slate-700 bg-surface md:flex">
         <div className="flex h-16 items-center gap-2 border-b border-slate-200 dark:border-slate-700 px-5">
           <span className="text-xl">💰</span>
-          <span className="font-semibold text-slate-800 dark:text-slate-100">FinZen</span>
+          <span className="font-semibold text-slate-800 dark:text-slate-100">Ahorbit</span>
         </div>
         <nav className="flex-1 space-y-1 p-3">
           {NAV.map((item) => (
@@ -120,7 +122,7 @@ export function AppShell() {
         <header className="safe-top flex items-center justify-between border-b border-slate-200 dark:border-slate-700 bg-surface px-6 py-3">
           <div className="flex items-center gap-2 md:hidden">
             <span className="text-xl">💰</span>
-            <span className="font-semibold text-slate-800 dark:text-slate-100">FinZen</span>
+            <span className="font-semibold text-slate-800 dark:text-slate-100">Ahorbit</span>
           </div>
           <div className="ml-auto flex items-center gap-3">
             {profile?.is_premium && (
@@ -187,6 +189,20 @@ export function AppShell() {
                   {t(item.label)}
                 </NavLink>
               ))}
+              {/* Enlace externo, no una ruta: va aparte de moreNav. Dentro del
+                  APK se omite porque la app ya está instalada. */}
+              {!isNative() && (
+                <a
+                  href={APK_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMoreOpen(false)}
+                  className="flex flex-col items-center gap-1 rounded-lg px-1 py-2 text-center text-[11px] font-medium text-slate-600 dark:text-slate-300 transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
+                >
+                  <span className="text-2xl">⬇️</span>
+                  {t('Descargar')}
+                </a>
+              )}
             </div>
           </div>
         </div>
