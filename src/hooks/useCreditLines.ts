@@ -89,19 +89,28 @@ export function useCreditUsageBreakdown(userId?: string) {
       cards: cardNames,
     })
 
-    const items = (lines || []).map((l) =>
-      build(
-        l.credit_line_id,
-        l.name,
-        l.currency,
-        l.credit_limit,
-        l.used,
-        l.available,
-        (cards || [])
+    // Una línea sin tarjetas asignadas (p. ej. creada por error o cuya única
+    // tarjeta se movió a otra línea) no debe pintar una barra fantasma que
+    // duplique el límite. Solo graficamos líneas con al menos una tarjeta.
+    const items = (lines || [])
+      .map((l) => ({
+        line: l,
+        cardNames: (cards || [])
           .filter((c) => c.credit_line_id === l.credit_line_id)
           .map((c) => c.name),
-      ),
-    )
+      }))
+      .filter(({ cardNames }) => cardNames.length > 0)
+      .map(({ line: l, cardNames }) =>
+        build(
+          l.credit_line_id,
+          l.name,
+          l.currency,
+          l.credit_limit,
+          l.used,
+          l.available,
+          cardNames,
+        ),
+      )
 
     // Tarjetas de crédito huérfanas (sin línea): su límite legado sigue en
     // card_usage, así que se grafican por separado en vez de desaparecer.

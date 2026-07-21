@@ -1,8 +1,8 @@
 // Tipos de las tablas/vistas de Supabase (definidos a mano; en el futuro se pueden
 // generar con `supabase gen types typescript`).
 
-export type AccountType = 'checking' | 'savings' | 'investment' | 'cash'
-export type CardType = 'credit' | 'debit'
+export type AccountType = 'checking' | 'savings' | 'investment' | 'cash' | 'voucher'
+export type CardType = 'credit' | 'debit' | 'voucher'
 export type TxKind = 'income' | 'expense' | 'transfer' | 'card_payment'
 export type CategoryKind = 'income' | 'expense'
 export type TxSource = 'manual' | 'import' | 'email' | 'sms' | 'aggregator' | 'receipt'
@@ -14,6 +14,8 @@ export interface ProfileRow {
   id: string
   email: string | null
   full_name: string | null
+  first_name: string | null
+  last_name: string | null
   avatar_url: string | null
   is_premium: boolean
   is_admin: boolean
@@ -85,6 +87,7 @@ export interface CardRow {
   user_id: string
   name: string
   brand: string | null
+  bank_name: string | null
   type: CardType
   /** Físico o virtual; independiente de crédito/débito. */
   card_format: 'physical' | 'virtual'
@@ -298,6 +301,16 @@ export interface ParsingRuleConfig {
   amountRegex?: string
   conceptRegex?: string
   dateRegex?: string
+  // Moneda fija (ej. 'MXN', 'USD') o regex que la extrae (grupo 1). Si no se
+  // define ninguna, la Edge Function usa MXN por compatibilidad.
+  currency?: string
+  currencyRegex?: string
+  // Tipo de movimiento a crear. Por defecto 'expense'. Útil para remitentes de
+  // ingresos (nómina, reembolsos) o proveedores.
+  kind?: 'income' | 'expense'
+  // Regex que extrae la terminación (4 dígitos) de la tarjeta del correo. Se
+  // cruza con cards.last4 para asignar la tarjeta/cuenta automáticamente.
+  last4Regex?: string
 }
 
 export interface TransactionDeletionRow {

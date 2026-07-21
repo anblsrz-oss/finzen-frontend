@@ -6,10 +6,12 @@ import { applyThemeColors } from '@/lib/themeColors'
 import { AppShell } from '@/components/layout/AppShell'
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute'
 import { LoginPage } from '@/features/auth/LoginPage'
+import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage'
 import { LandingPage } from '@/features/landing/LandingPage'
 import { DashboardPage } from '@/features/reports/DashboardPage'
 import { AccountsPage } from '@/features/accounts/AccountsPage'
 import { CardsPage } from '@/features/cards/CardsPage'
+import { CreditLinesPage } from '@/features/credit/CreditLinesPage'
 import { TransactionsPage } from '@/features/transactions/TransactionsPage'
 import { ImportPage } from '@/features/import/ImportPage'
 import { ReceiptPage } from '@/features/receipts/ReceiptPage'
@@ -45,6 +47,7 @@ export default function App() {
     <Routes>
       <Route path="/bienvenida" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
         element={
           <ProtectedRoute>
@@ -55,6 +58,7 @@ export default function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/cuentas" element={<AccountsPage />} />
         <Route path="/tarjetas" element={<CardsPage />} />
+        <Route path="/lineas-credito" element={<CreditLinesPage />} />
         <Route path="/transacciones" element={<TransactionsPage />} />
         <Route path="/importar" element={<ImportPage />} />
         <Route path="/recibos" element={<ReceiptPage />} />

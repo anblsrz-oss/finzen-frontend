@@ -1,30 +1,22 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useCards, useCardUsage, useDeleteCard } from '@/hooks/useCards'
 import { useAccounts } from '@/hooks/useAccounts'
-import {
-  useCreditLines,
-  useCreditLineUsage,
-  useCreditActivity,
-} from '@/hooks/useCreditLines'
-import { useCreditLinePeriods } from '@/hooks/useCreditLinePeriods'
-import { useCategories } from '@/hooks/useCategories'
-import { useInstallmentPlans, useInstallmentPayments } from '@/hooks/useTransactions'
-import { PeriodConfirmBanner } from './PeriodConfirmBanner'
-import { LinePeriodInfo } from './LinePeriodInfo'
-import { LineStatement } from './LineStatement'
+import { useCreditLines } from '@/hooks/useCreditLines'
 import { useEntitlements } from '@/hooks/useAppConfig'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { Modal } from '@/components/ui/Modal'
+import { Select } from '@/components/ui/Select'
 import { PremiumGate } from '@/components/ui/PremiumGate'
 import { CardForm } from './CardForm'
 import { CardVisual } from './CardVisual'
-import { TransactionForm } from '@/features/transactions/TransactionForm'
 import { Money } from '@/components/ui/Money'
-import type { CardRow, CreditLineRow } from '@/types/db'
+import type { CardRow } from '@/types/db'
+
+type GroupBy = 'line' | 'bank' | 'type' | 'format'
 
 export function CardsPage() {
   const { t } = useTranslation()
@@ -32,7 +24,7 @@ export function CardsPage() {
   const userId = session?.user?.id
   const [showForm, setShowForm] = useState(false)
   const [editingCard, setEditingCard] = useState<CardRow | null>(null)
-  const [payingLine, setPayingLine] = useState<{ line: CreditLineRow; amount: number } | null>(null)
+  const [groupBy, setGroupBy] = useState<GroupBy>('line')
   const formRef = useRef<HTMLDivElement>(null)
 
   // El formulario se renderiza arriba de la lista: en móvil hay que llevar al
@@ -47,12 +39,6 @@ export function CardsPage() {
   const accountsQuery = useAccounts(userId)
   const cardUsageQuery = useCardUsage(userId)
   const creditLinesQuery = useCreditLines(userId)
-  const lineUsageQuery = useCreditLineUsage(userId)
-  const periodsQuery = useCreditLinePeriods(userId)
-  const categoriesQuery = useCategories(userId)
-  const activityQuery = useCreditActivity(userId)
-  const plansQuery = useInstallmentPlans(userId)
-  const paymentsQuery = useInstallmentPayments(userId)
   const deleteCard = useDeleteCard()
   const { cardLimit } = useEntitlements()
 
@@ -60,18 +46,62 @@ export function CardsPage() {
   const accounts = accountsQuery.data || []
   const cardUsages = cardUsageQuery.data || []
   const creditLines = creditLinesQuery.data || []
-  const lineUsages = lineUsageQuery.data || []
-  const periods = periodsQuery.data || []
-  const categories = categoriesQuery.data || []
-  const activities = activityQuery.data || []
-  const plans = plansQuery.data || []
-  const installmentPayments = paymentsQuery.data || []
 
-  // Tarjetas que no cuelgan de ninguna línea: las de débito y las de crédito
-  // cuya línea se borró (on delete set null).
+  // Tarjetas que no cuelgan de ninguna línea: las de débito/vale y las de
+  // crédito cuya línea se borró (on delete set null).
   const looseCards = cards.filter(
     (c) => !c.credit_line_id || !creditLines.some((l) => l.id === c.credit_line_id),
   )
+
+  // Banco de una tarjeta: el propio; si no, se hereda de su línea (crédito) o
+  // de su cuenta ligada (débito/vale). null => "Sin banco".
+  const bankOf = (card: CardRow): string | null => {
+    if (card.bank_name?.trim()) return card.bank_name.trim()
+    if (card.credit_line_id) {
+      const line = creditLines.find((l) => l.id === card.credit_line_id)
+      if (line?.bank_name?.trim()) return line.bank_name.trim()
+    }
+    if (card.account_id) {
+      const acc = accounts.find((a) => a.id === card.account_id)
+      if (acc?.bank_name?.trim()) return acc.bank_name.trim()
+    }
+    return null
+  }
+
+  const typeLabelOf = (card: CardRow): string => {
+    if (card.is_scholarship) return t('Beca')
+    if (card.type === 'credit') return t('Crédito')
+    if (card.type === 'voucher') return t('Vales')
+    return t('Débito')
+  }
+
+  // Grupos genéricos (banco/tipo/formato). El agrupado por línea usa su propio
+  // render más abajo para conservar el encabezado y el enlace "Ver línea".
+  const genericGroups = useMemo(() => {
+    if (groupBy === 'line') return []
+    const SIN_BANCO = t('Sin banco')
+    const map = new Map<string, { label: string; cards: CardRow[] }>()
+    for (const card of cards) {
+      const label =
+        groupBy === 'bank'
+          ? bankOf(card) ?? SIN_BANCO
+          : groupBy === 'type'
+            ? typeLabelOf(card)
+            : card.card_format === 'virtual'
+              ? t('Virtual')
+              : t('Física')
+      const g = map.get(label) ?? { label, cards: [] }
+      g.cards.push(card)
+      map.set(label, g)
+    }
+    // Más tarjetas primero; "Sin banco" siempre al final.
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.label === SIN_BANCO) return 1
+      if (b.label === SIN_BANCO) return -1
+      return b.cards.length - a.cards.length
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupBy, cards, creditLines, accounts, t])
 
   const getCardUsage = (cardId: string) => {
     return cardUsages.find((cu) => cu.card_id === cardId)
@@ -98,13 +128,14 @@ export function CardsPage() {
               : card.brand || t('Sin marca')}
           </span>
           <span>· {card.currency}</span>
-          {card.type === 'debit' && account && (
+          {card.bank_name && <span>· {card.bank_name}</span>}
+          {(card.type === 'debit' || card.type === 'voucher') && account && (
             <span>· {t('Ligada a:')} {account.name}</span>
           )}
         </div>
 
         {/* Gasto de esta tarjeta en particular; el límite y el disponible se
-            muestran arriba, a nivel de la línea que comparte con las demás. */}
+            gestionan en la sección de Líneas de crédito. */}
         {card.type === 'credit' && usage && (
           <div className="text-xs">
             <p className="text-slate-500 dark:text-slate-400">{t('Gasto de esta tarjeta')}</p>
@@ -142,7 +173,7 @@ export function CardsPage() {
     <>
       <PageHeader
         title={t('Tarjetas')}
-        subtitle={t('Tarjetas de crédito y débito con límite, uso y fechas.')}
+        subtitle={t('Tus tarjetas de crédito, débito y vales. Los límites y pagos están en Líneas de crédito.')}
         actions={
           <PremiumGate
             count={cards.length}
@@ -191,80 +222,84 @@ export function CardsPage() {
         </Card>
       ) : (
         <div className="space-y-8">
-          {/* Un bloque por línea de crédito: el límite y el disponible son de
-              la línea completa, las tarjetas solo aportan su gasto. */}
-          {creditLines.map((line) => {
-            const lineCards = cards.filter((c) => c.credit_line_id === line.id)
-            if (lineCards.length === 0) return null
-            const usage = lineUsages.find((u) => u.credit_line_id === line.id)
+          {/* Control de agrupación */}
+          <div className="max-w-xs">
+            <Select
+              label={t('Agrupar por')}
+              value={groupBy}
+              onChange={(e) => setGroupBy(e.target.value as GroupBy)}
+              options={[
+                { value: 'line', label: t('Línea de crédito') },
+                { value: 'bank', label: t('Banco') },
+                { value: 'type', label: t('Tipo') },
+                { value: 'format', label: t('Formato (física/virtual)') },
+              ]}
+            />
+          </div>
 
-            return (
-              <section key={line.id} className="space-y-4">
-                <Card>
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h3 className="font-semibold text-slate-800 dark:text-slate-100">
-                        {line.name}
-                      </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {t('{{n}} tarjetas · límite compartido', { n: lineCards.length })}
-                      </p>
-                    </div>
-                    {usage && (
-                      <div className="flex gap-4 text-xs">
-                        <div>
-                          <p className="text-slate-500 dark:text-slate-400">{t('Usado')}</p>
-                          <p className="font-semibold text-slate-800 dark:text-slate-100">
-                            <Money amount={usage.used} currency={line.currency} />
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-slate-500 dark:text-slate-400">{t('Límite')}</p>
-                          <p className="font-medium text-slate-700 dark:text-slate-200">
-                            <Money amount={usage.credit_limit} currency={line.currency} />
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-slate-500 dark:text-slate-400">{t('Disponible')}</p>
-                          <p className="font-medium text-green-600">
-                            <Money amount={usage.available} currency={line.currency} />
-                          </p>
-                        </div>
+          {groupBy === 'line' ? (
+            <>
+              {/* Un bloque por línea de crédito: las tarjetas que comparten
+                  línea se muestran juntas. El límite y el pago viven en Líneas
+                  de crédito. */}
+              {creditLines.map((line) => {
+                const lineCards = cards.filter((c) => c.credit_line_id === line.id)
+                if (lineCards.length === 0) return null
+
+                return (
+                  <section key={line.id} className="space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h3 className="font-semibold text-slate-800 dark:text-slate-100">
+                          {line.name}
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {t('{{n}} tarjetas · límite compartido', { n: lineCards.length })}
+                        </p>
                       </div>
-                    )}
+                      <Link
+                        to="/lineas-credito"
+                        className="text-xs font-medium text-brand-700 dark:text-brand-500 hover:underline"
+                      >
+                        {t('Ver línea')}
+                      </Link>
+                    </div>
+
+                    <div className="grid gap-6 sm:grid-cols-2">
+                      {lineCards.map((card) => renderCard(card))}
+                    </div>
+                  </section>
+                )
+              })}
+
+              {/* Débito, vales y crédito sin línea asignada. */}
+              {looseCards.length > 0 && (
+                <section className="space-y-4">
+                  {creditLines.some((l) => cards.some((c) => c.credit_line_id === l.id)) && (
+                    <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                      {t('Otras tarjetas')}
+                    </h3>
+                  )}
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    {looseCards.map((card) => renderCard(card))}
                   </div>
-                  <LinePeriodInfo line={line} periods={periods} />
-                  <LineStatement
-                    line={line}
-                    cards={cards}
-                    activities={activities}
-                    plans={plans}
-                    payments={installmentPayments}
-                    onPay={(amount) => setPayingLine({ line, amount })}
-                  />
-                </Card>
-
-                <PeriodConfirmBanner line={line} periods={periods} />
-
+                </section>
+              )}
+            </>
+          ) : (
+            genericGroups.map((group) => (
+              <section key={group.label} className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                  {group.label}{' '}
+                  <span className="font-normal text-slate-400 dark:text-slate-500">
+                    ({group.cards.length})
+                  </span>
+                </h3>
                 <div className="grid gap-6 sm:grid-cols-2">
-                  {lineCards.map((card) => renderCard(card))}
+                  {group.cards.map((card) => renderCard(card))}
                 </div>
               </section>
-            )
-          })}
-
-          {/* Débito y crédito sin línea asignada. */}
-          {looseCards.length > 0 && (
-            <section className="space-y-4">
-              {creditLines.length > 0 && (
-                <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300">
-                  {t('Otras tarjetas')}
-                </h3>
-              )}
-              <div className="grid gap-6 sm:grid-cols-2">
-                {looseCards.map((card) => renderCard(card))}
-              </div>
-            </section>
+            ))
           )}
         </div>
       )}
@@ -276,29 +311,6 @@ export function CardsPage() {
           </p>
         </Card>
       )}
-
-      {/* Pago de la línea de crédito: reutiliza el formulario de transacciones
-          prellenado como "Pago de tarjeta". */}
-      <Modal
-        open={!!payingLine}
-        title={t('Pagar {{name}}', { name: payingLine?.line.name ?? '' })}
-        onClose={() => setPayingLine(null)}
-      >
-        {payingLine && (
-          <TransactionForm
-            accounts={accounts}
-            cards={cards}
-            categories={categories}
-            initial={{
-              kind: 'card_payment',
-              toCreditLineId: payingLine.line.id,
-              amount: payingLine.amount > 0 ? payingLine.amount : undefined,
-            }}
-            onSuccess={() => setPayingLine(null)}
-            onCancel={() => setPayingLine(null)}
-          />
-        )}
-      </Modal>
     </>
   )
 }

@@ -37,8 +37,12 @@ import type {
   TransactionRow,
 } from '@/types/db'
 
+// 'cash_withdrawal' es solo un modo de la UI: al guardar se traduce a un
+// 'transfer' interno a la cuenta de efectivo (si el dinero solo pasa a la
+// cartera) o a un 'expense' desde la cuenta origen (si ya se gastó / es para
+// un pago). No es un kind que se guarde en la base de datos.
 const schema = z.object({
-  kind: z.enum(['income', 'expense', 'transfer', 'card_payment']),
+  kind: z.enum(['income', 'expense', 'transfer', 'card_payment', 'cash_withdrawal']),
   amount: z.coerce.number().positive('Monto debe ser mayor a 0'),
   currency: z.string(),
   concept: z.string().optional(),
@@ -61,6 +65,9 @@ const schema = z.object({
   msiPaidPrevious: z.boolean().default(false),
   msiPaidCount: z.coerce.number().optional(),
   familyExpense: z.boolean().default(false),
+  // Retiro de efectivo: ON = ya lo gastaste / es para un pago (cuenta como
+  // egreso ya); OFF = solo lo tienes en la cartera (aún no es egreso).
+  spentAsCash: z.boolean().default(false),
 })
 
 type FormData = z.infer<typeof schema>
@@ -173,6 +180,10 @@ export function TransactionForm({
   const msiStartDate = form.watch('msiStartDate') || todayISO()
   const msiPaidPrevious = form.watch('msiPaidPrevious')
   const familyExpense = form.watch('familyExpense')
+  const spentAsCash = form.watch('spentAsCash')
+
+  // Destino de un retiro de efectivo: solo cuentas de efectivo (la cartera).
+  const cashAccounts = accounts.filter((a) => a.type === 'cash')
 
   // Un MSI que arrancó meses atrás: hay que preguntar si esas mensualidades
   // ya se pagaron, si no el histórico queda negativo por un gasto que en
@@ -271,6 +282,20 @@ export function TransactionForm({
       alert(t('Selecciona la cuenta origen y la línea de crédito a pagar'))
       return
     }
+    if (data.kind === 'cash_withdrawal') {
+      if (!data.accountId) {
+        alert(t('Selecciona la cuenta de la que retiras el efectivo'))
+        return
+      }
+      if (!data.spentAsCash && !data.toAccountId) {
+        alert(t('Selecciona la cuenta de efectivo a la que va el retiro'))
+        return
+      }
+      if (!data.spentAsCash && data.accountId === data.toAccountId) {
+        alert(t('Las cuentas no pueden ser la misma'))
+        return
+      }
+    }
 
     const familyId = selectedForeignCard
       ? selectedForeignCard.family_id
@@ -293,15 +318,33 @@ export function TransactionForm({
     let resolvedToCreditLineId: string | undefined
     let resolvedCategoryId: string | undefined = data.categoryId || undefined
     let external = false
+    // 'cash_withdrawal' no se guarda como tal: se traduce a expense/transfer.
+    let resolvedKind: TransactionRow['kind'] =
+      data.kind === 'cash_withdrawal'
+        ? data.spentAsCash
+          ? 'expense'
+          : 'transfer'
+        : data.kind
 
-    if (data.kind === 'income') {
+    if (data.kind === 'cash_withdrawal') {
+      // Sale de la cuenta origen en ambos casos.
+      resolvedAccountId = data.accountId || undefined
+      if (data.spentAsCash) {
+        // Ya se gastó / es para un pago: egreso inmediato desde la cuenta.
+        // Conserva concepto y categoría.
+      } else {
+        // Solo pasa a la cartera: transferencia interna, aún no es egreso.
+        resolvedToAccountId = data.toAccountId || undefined
+        resolvedCategoryId = undefined
+      }
+    } else if (data.kind === 'income') {
       resolvedAccountId = data.accountId || undefined
     } else if (data.kind === 'expense') {
       resolvedCardId = data.cardId || undefined
       if (resolvedCardId) {
-        // Débito descuenta de su cuenta ligada; crédito no toca ninguna cuenta.
+        // Débito y vales descuentan de su cuenta ligada; crédito no toca cuenta.
         const card = cards.find((c) => c.id === resolvedCardId)
-        if (card?.type === 'debit') {
+        if (card?.type === 'debit' || card?.type === 'voucher') {
           resolvedAccountId = card.account_id || undefined
         } else if (!card) {
           // Tarjeta familiar ajena: gasto sin cuenta propia.
@@ -326,7 +369,7 @@ export function TransactionForm({
         await updateTransaction.mutateAsync({
           id: transaction.id,
           userId,
-          kind: data.kind,
+          kind: resolvedKind,
           amount: data.amount,
           currency: data.currency,
           fxRate,
@@ -347,7 +390,7 @@ export function TransactionForm({
 
       const tx = await createTransaction.mutateAsync({
         userId,
-        kind: data.kind,
+        kind: resolvedKind,
         amount: data.amount,
         currency: data.currency,
         fxRate,
@@ -447,6 +490,7 @@ export function TransactionForm({
             { value: 'expense', label: t('📤 Egreso') },
             { value: 'transfer', label: t('🔄 Transferencia') },
             { value: 'card_payment', label: t('💳 Pago de tarjeta') },
+            { value: 'cash_withdrawal', label: t('🏧 Retiro de efectivo') },
           ]}
           {...form.register('kind')}
         />
@@ -513,7 +557,9 @@ export function TransactionForm({
             placeholder={t('Ej: Almuerzo')}
             {...form.register('concept')}
           />
-          {(txKind === 'income' || txKind === 'expense') && (
+          {(txKind === 'income' ||
+            txKind === 'expense' ||
+            (txKind === 'cash_withdrawal' && spentAsCash)) && (
             <Select
               label={t('Categoría')}
               options={[
@@ -623,6 +669,60 @@ export function TransactionForm({
               <p className="rounded-lg bg-amber-50 dark:bg-amber-900/20 p-2 text-xs text-amber-700 dark:text-amber-300">
                 {t('Sale dinero de verdad: se contará como egreso en tus reportes.')}
               </p>
+            )}
+          </div>
+        )}
+
+        {txKind === 'cash_withdrawal' && (
+          <div className="space-y-3">
+            <Select
+              label={t('Retiras de')}
+              options={[
+                { value: '', label: t('Selecciona la cuenta') },
+                ...accounts
+                  .filter((a) => a.type !== 'cash')
+                  .map((a) => ({ value: a.id, label: a.name })),
+              ]}
+              {...form.register('accountId')}
+            />
+
+            <label className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                {...form.register('spentAsCash')}
+                className="mt-0.5 cursor-pointer"
+              />
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                {t('Ya lo gastaste o es para un pago')}
+                <span className="block text-xs font-normal text-slate-400 dark:text-slate-500">
+                  {t('Actívalo si el efectivo ya se usó: contará como egreso ahora. Déjalo apagado si solo lo tienes en la cartera.')}
+                </span>
+              </span>
+            </label>
+
+            {spentAsCash ? (
+              <p className="rounded-lg bg-amber-50 dark:bg-amber-900/20 p-2 text-xs text-amber-700 dark:text-amber-300">
+                {t('Se registrará como egreso desde la cuenta de la que retiras.')}
+              </p>
+            ) : (
+              <>
+                <Select
+                  label={t('Efectivo va a (cartera)')}
+                  options={[
+                    { value: '', label: t('Selecciona la cuenta de efectivo') },
+                    ...cashAccounts.map((a) => ({ value: a.id, label: a.name })),
+                  ]}
+                  {...form.register('toAccountId')}
+                />
+                {cashAccounts.length === 0 && (
+                  <p className="rounded-lg bg-amber-50 dark:bg-amber-900/20 p-2 text-xs text-amber-700 dark:text-amber-300">
+                    {t('No tienes una cuenta de tipo Efectivo. Crea una en Cuentas para guardar el efectivo de la cartera.')}
+                  </p>
+                )}
+                <p className="rounded-lg bg-slate-100 dark:bg-slate-800 p-2 text-xs text-slate-500 dark:text-slate-400">
+                  {t('Solo pasa a tu cartera: aún no es egreso. Lo será cuando registres el gasto de ese efectivo.')}
+                </p>
+              </>
             )}
           </div>
         )}

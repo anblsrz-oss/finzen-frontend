@@ -28,10 +28,11 @@ const NEW_LINE = '__new__'
 const schema = z
   .object({
     name: z.string().min(1, 'Nombre requerido'),
+    bank_name: z.string().optional(),
     // 'other' abre el campo de texto libre; las virtuales no llevan marca.
     brand_option: z.string().optional(),
     brand_other: z.string().optional(),
-    type: z.enum(['credit', 'debit']),
+    type: z.enum(['credit', 'debit', 'voucher']),
     card_format: z.enum(['physical', 'virtual']),
     currency: z.enum(CURRENCIES_ARRAY),
     account_id: z.string().optional(),
@@ -52,11 +53,12 @@ const schema = z
     scholarship_name: z.string().optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.type === 'debit' && !data.account_id) {
+    // Débito y vales van ligados a una cuenta (la cuenta es su saldo).
+    if ((data.type === 'debit' || data.type === 'voucher') && !data.account_id) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['account_id'],
-        message: 'Selecciona una cuenta para débito',
+        message: 'Selecciona una cuenta',
       })
     }
     // Los campos de marca solo existen en pantalla si la tarjeta es física.
@@ -133,6 +135,7 @@ export function CardForm({ accounts, card, onSuccess, onCancel }: CardFormProps)
     resolver: zodResolver(schema),
     defaultValues: {
       name: card?.name ?? '',
+      bank_name: card?.bank_name ?? '',
       brand_option: card ? (knownBrand ?? (card.brand ? 'other' : '')) : '',
       brand_other: card && !knownBrand ? (card.brand ?? '') : '',
       type: card?.type ?? 'credit',
@@ -163,6 +166,16 @@ export function CardForm({ accounts, card, onSuccess, onCancel }: CardFormProps)
   const selectedColor = form.watch('color')
   const isNewLine = selectedLineId === NEW_LINE
   const inheritedLine = creditLines.find((l) => l.id === selectedLineId)
+
+  // Sugerencias de banco: los que ya se usan en cuentas y líneas de crédito.
+  const bankSuggestions = Array.from(
+    new Set(
+      [
+        ...accounts.map((a) => a.bank_name),
+        ...creditLines.map((l) => l.bank_name),
+      ].filter((b): b is string => !!b && b.trim().length > 0),
+    ),
+  ).sort()
 
   // Una tarjeta virtual no lleva marca: se limpian sus campos al cambiar de
   // formato para no arrastrar lo que se había capturado como física.
@@ -264,6 +277,7 @@ export function CardForm({ accounts, card, onSuccess, onCancel }: CardFormProps)
       userId,
       name: data.name,
       brand,
+      bank_name: data.bank_name?.trim() || null,
       type: data.type,
       card_format: data.card_format,
       currency: data.currency,
@@ -368,6 +382,20 @@ export function CardForm({ accounts, card, onSuccess, onCancel }: CardFormProps)
           />
         </div>
 
+        <Input
+          label={t('Banco (opcional)')}
+          placeholder={t('Ej: Nu, BBVA')}
+          list="card-bank-suggestions"
+          {...form.register('bank_name')}
+        />
+        {bankSuggestions.length > 0 && (
+          <datalist id="card-bank-suggestions">
+            {bankSuggestions.map((b) => (
+              <option key={b} value={b} />
+            ))}
+          </datalist>
+        )}
+
         {/* Las tarjetas virtuales no tienen marca impresa. */}
         {cardFormat === 'physical' && (
           <div className="space-y-2">
@@ -411,6 +439,7 @@ export function CardForm({ accounts, card, onSuccess, onCancel }: CardFormProps)
             options={[
               { value: 'credit', label: t('💳 Crédito') },
               { value: 'debit', label: t('💰 Débito') },
+              { value: 'voucher', label: t('🍎 Vales de despensa') },
             ]}
             {...form.register('type')}
           />
@@ -421,9 +450,9 @@ export function CardForm({ accounts, card, onSuccess, onCancel }: CardFormProps)
           />
         </div>
 
-        {cardType === 'debit' && (
+        {(cardType === 'debit' || cardType === 'voucher') && (
           <Select
-            label={t('Cuenta ligada')}
+            label={cardType === 'voucher' ? t('Cuenta de vales') : t('Cuenta ligada')}
             options={[
               { value: '', label: t('Selecciona una cuenta') },
               ...accounts.map((a) => ({ value: a.id, label: a.name })),

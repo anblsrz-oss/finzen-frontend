@@ -152,7 +152,11 @@ export function CardVisual({ card }: CardVisualProps) {
           </div>
         </div>
         <span className="text-xs font-medium uppercase opacity-90">
-          {card.type === 'credit' ? t('Crédito') : t('Débito')}
+          {card.type === 'credit'
+            ? t('Crédito')
+            : card.type === 'voucher'
+              ? t('Vales')
+              : t('Débito')}
         </span>
       </div>
 

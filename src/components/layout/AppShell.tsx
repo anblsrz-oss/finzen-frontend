@@ -16,6 +16,7 @@ const NAV: NavItem[] = [
   { to: '/', label: 'Resumen', icon: '📊' },
   { to: '/cuentas', label: 'Cuentas', icon: '🏦' },
   { to: '/tarjetas', label: 'Tarjetas', icon: '💳' },
+  { to: '/lineas-credito', label: 'Líneas de crédito', icon: '💠' },
   { to: '/transacciones', label: 'Transacciones', icon: '💸' },
   { to: '/importar', label: 'Importar', icon: '📥' },
   { to: '/recibos', label: 'Escanear recibo', icon: '🧾' },
@@ -40,6 +41,7 @@ const MOBILE_NAV: NavItem[] = [
 // Resto de secciones, accesibles desde el menú "Más" en móvil.
 const MORE_NAV: NavItem[] = [
   { to: '/tarjetas', label: 'Tarjetas', icon: '💳' },
+  { to: '/lineas-credito', label: 'Crédito', icon: '💠' },
   { to: '/recibos', label: 'Recibos', icon: '🧾' },
   { to: '/familia', label: 'Familia', icon: '👨‍👩‍👧‍👦' },
   { to: '/importar', label: 'Importar', icon: '📥' },

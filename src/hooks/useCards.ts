@@ -26,7 +26,8 @@ export function useCreateCard() {
       userId: string
       name: string
       brand?: string | null
-      type: 'credit' | 'debit'
+      bank_name?: string | null
+      type: 'credit' | 'debit' | 'voucher'
       card_format?: 'physical' | 'virtual'
       currency: string
       account_id?: string | null
@@ -41,6 +42,7 @@ export function useCreateCard() {
         user_id: input.userId,
         name: input.name,
         brand: input.brand ?? null,
+        bank_name: input.bank_name || null,
         type: input.type,
         card_format: input.card_format ?? 'physical',
         currency: input.currency,
@@ -79,6 +81,7 @@ export function useUpdateCard() {
       userId: string
       name?: string
       brand?: string | null
+      bank_name?: string | null
       type?: string
       card_format?: 'physical' | 'virtual'
       currency?: string
@@ -94,6 +97,7 @@ export function useUpdateCard() {
       const updates: Record<string, any> = {}
       if (rest.name !== undefined) updates.name = rest.name
       if (rest.brand !== undefined) updates.brand = rest.brand || null
+      if (rest.bank_name !== undefined) updates.bank_name = rest.bank_name || null
       if (rest.type !== undefined) updates.type = rest.type
       if (rest.card_format !== undefined) updates.card_format = rest.card_format
       if (rest.currency !== undefined) updates.currency = rest.currency

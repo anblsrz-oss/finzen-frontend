@@ -19,7 +19,7 @@ const DEFAULT_ISR_RATE = 0.5
 const schema = z.object({
   name: z.string().min(1, 'Nombre requerido'),
   bank_name: z.string().optional(),
-  type: z.enum(['checking', 'savings', 'investment', 'cash']),
+  type: z.enum(['checking', 'savings', 'investment', 'cash', 'voucher']),
   currency: z.enum(CURRENCIES_ARRAY),
   // En edición se permite negativo (p. ej. para corregir montos de prueba).
   initial_balance: z.coerce.number(),
@@ -143,6 +143,7 @@ export function AccountForm({ account, onSuccess, onCancel }: AccountFormProps) 
               { value: 'savings', label: t('Ahorro') },
               { value: 'investment', label: t('Inversión') },
               { value: 'cash', label: t('Efectivo') },
+              { value: 'voucher', label: t('Vales de despensa') },
             ]}
             {...form.register('type')}
           />
