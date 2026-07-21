@@ -3,19 +3,28 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useCards, useCardUsage, useDeleteCard } from '@/hooks/useCards'
 import { useAccounts } from '@/hooks/useAccounts'
-import { useCreditLines, useCreditLineUsage } from '@/hooks/useCreditLines'
+import {
+  useCreditLines,
+  useCreditLineUsage,
+  useCreditActivity,
+} from '@/hooks/useCreditLines'
 import { useCreditLinePeriods } from '@/hooks/useCreditLinePeriods'
+import { useCategories } from '@/hooks/useCategories'
+import { useInstallmentPlans, useInstallmentPayments } from '@/hooks/useTransactions'
 import { PeriodConfirmBanner } from './PeriodConfirmBanner'
 import { LinePeriodInfo } from './LinePeriodInfo'
+import { LineStatement } from './LineStatement'
 import { useEntitlements } from '@/hooks/useAppConfig'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { Modal } from '@/components/ui/Modal'
 import { PremiumGate } from '@/components/ui/PremiumGate'
 import { CardForm } from './CardForm'
 import { CardVisual } from './CardVisual'
+import { TransactionForm } from '@/features/transactions/TransactionForm'
 import { Money } from '@/components/ui/Money'
-import type { CardRow } from '@/types/db'
+import type { CardRow, CreditLineRow } from '@/types/db'
 
 export function CardsPage() {
   const { t } = useTranslation()
@@ -23,6 +32,7 @@ export function CardsPage() {
   const userId = session?.user?.id
   const [showForm, setShowForm] = useState(false)
   const [editingCard, setEditingCard] = useState<CardRow | null>(null)
+  const [payingLine, setPayingLine] = useState<{ line: CreditLineRow; amount: number } | null>(null)
   const formRef = useRef<HTMLDivElement>(null)
 
   // El formulario se renderiza arriba de la lista: en móvil hay que llevar al
@@ -39,6 +49,10 @@ export function CardsPage() {
   const creditLinesQuery = useCreditLines(userId)
   const lineUsageQuery = useCreditLineUsage(userId)
   const periodsQuery = useCreditLinePeriods(userId)
+  const categoriesQuery = useCategories(userId)
+  const activityQuery = useCreditActivity(userId)
+  const plansQuery = useInstallmentPlans(userId)
+  const paymentsQuery = useInstallmentPayments(userId)
   const deleteCard = useDeleteCard()
   const { cardLimit } = useEntitlements()
 
@@ -48,6 +62,10 @@ export function CardsPage() {
   const creditLines = creditLinesQuery.data || []
   const lineUsages = lineUsageQuery.data || []
   const periods = periodsQuery.data || []
+  const categories = categoriesQuery.data || []
+  const activities = activityQuery.data || []
+  const plans = plansQuery.data || []
+  const installmentPayments = paymentsQuery.data || []
 
   // Tarjetas que no cuelgan de ninguna línea: las de débito y las de crédito
   // cuya línea se borró (on delete set null).
@@ -216,6 +234,14 @@ export function CardsPage() {
                     )}
                   </div>
                   <LinePeriodInfo line={line} periods={periods} />
+                  <LineStatement
+                    line={line}
+                    cards={cards}
+                    activities={activities}
+                    plans={plans}
+                    payments={installmentPayments}
+                    onPay={(amount) => setPayingLine({ line, amount })}
+                  />
                 </Card>
 
                 <PeriodConfirmBanner line={line} periods={periods} />
@@ -250,6 +276,29 @@ export function CardsPage() {
           </p>
         </Card>
       )}
+
+      {/* Pago de la línea de crédito: reutiliza el formulario de transacciones
+          prellenado como "Pago de tarjeta". */}
+      <Modal
+        open={!!payingLine}
+        title={t('Pagar {{name}}', { name: payingLine?.line.name ?? '' })}
+        onClose={() => setPayingLine(null)}
+      >
+        {payingLine && (
+          <TransactionForm
+            accounts={accounts}
+            cards={cards}
+            categories={categories}
+            initial={{
+              kind: 'card_payment',
+              toCreditLineId: payingLine.line.id,
+              amount: payingLine.amount > 0 ? payingLine.amount : undefined,
+            }}
+            onSuccess={() => setPayingLine(null)}
+            onCancel={() => setPayingLine(null)}
+          />
+        )}
+      </Modal>
     </>
   )
 }

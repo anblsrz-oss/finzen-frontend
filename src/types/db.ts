@@ -3,7 +3,7 @@
 
 export type AccountType = 'checking' | 'savings' | 'investment' | 'cash'
 export type CardType = 'credit' | 'debit'
-export type TxKind = 'income' | 'expense' | 'transfer'
+export type TxKind = 'income' | 'expense' | 'transfer' | 'card_payment'
 export type CategoryKind = 'income' | 'expense'
 export type TxSource = 'manual' | 'import' | 'email' | 'sms' | 'aggregator' | 'receipt'
 export type IngestChannel = 'csv' | 'pdf' | 'email' | 'sms'
@@ -128,6 +128,10 @@ export interface TransactionRow {
   account_id: string | null
   to_account_id: string | null
   card_id: string | null
+  /** Pago de tarjeta: línea de crédito a la que se abona. */
+  to_credit_line_id: string | null
+  /** Transferencia cuya cuenta destino no es del usuario (cuenta como egreso). */
+  is_external: boolean
   tx_date: string
   notes: string | null
   source: TxSource
@@ -135,6 +139,18 @@ export interface TransactionRow {
   pending: boolean
   raw_ref: string | null
   family_id: string | null
+  created_at: string
+}
+
+export interface InstallmentPlanPaymentRow {
+  id: string
+  user_id: string
+  plan_id: string
+  /** Primer día del mes de la mensualidad. */
+  period_month: string
+  amount: number
+  paid: boolean
+  paid_at: string
   created_at: string
 }
 

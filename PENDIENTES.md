@@ -16,23 +16,23 @@ git push
 
 ## En la máquina personal (setup)
 
-- [ ] **Instalar JDK 21** (Temurin/Adoptium). Gradle 8.14.3 + AGP 8.13.0 de este
+- [x] **Instalar JDK 21** (Temurin/Adoptium). Gradle 8.14.3 + AGP 8.13.0 de este
       proyecto **no soportan JDK 25** (falla el build). El instalador es el
-      mismo sitio (adoptium.net), solo elige la versión 21.
-- [ ] **Registrar el redirect nativo en Supabase** → proyecto
+      mismo sitio (adoptium.net), solo elige la versión 21. Según yo esto ya esta en mi máquina personal
+- [x] **Registrar el redirect nativo en Supabase** → proyecto
       `vujlizgyharlhcmfgkti` → Authentication → URL Configuration → Redirect
-      URLs → agrega `com.ahorbit.app://auth-callback`.
+      URLs → agrega `com.ahorbit.app://auth-callback`. Listo
       **Crítico antes de instalar cualquier APK nuevo**: sin esto el login con
       Google se rompe en la app nativa (el scheme cambió de `com.finzen.app`
       a `com.ahorbit.app`).
-- [ ] Compilar el APK. En esta máquina `gradlew assembleDebug` falló al
+- [x] Compilar el APK. En esta máquina `gradlew assembleDebug` falló al
       descargar el wrapper de Gradle (error TLS/`PKIX path building failed`,
       causado por `JAVA_TOOL_OPTIONS=-Djava.vendor="New Oracle"` en el
       entorno de esta laptop — no es un problema del código). Puede que en tu
       máquina personal no pase; si prefieres evitar la duda, abre el proyecto
       directamente en **Android Studio** (trae su propio JDK y suele resolver
       esto solo).
-- [ ] Si tienes el APK viejo instalado (`com.finzen.app`), **desinstálalo**
+- [x] Si tienes el APK viejo instalado (`com.finzen.app`), **desinstálalo**
       antes de instalar el nuevo build — Android lo trata como una app
       distinta por el cambio de `appId`. Tus datos no se pierden (viven en
       Supabase), solo la instalación local.

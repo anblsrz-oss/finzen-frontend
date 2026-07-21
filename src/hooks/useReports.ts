@@ -4,22 +4,23 @@ import { supabase } from '@/lib/supabase'
 import { formatMonthLabel } from '@/lib/dates'
 import { useCards } from '@/hooks/useCards'
 import { useAccounts } from '@/hooks/useAccounts'
-import { BALANCE_ADJUSTMENT_CATEGORY } from '@/lib/charts'
 import type { TransactionRow } from '@/types/db'
 
-// Las filas traen la categoría anidada (join) para poder excluir los ajustes de
-// saldo del flujo de efectivo.
+// Las filas traen la categoría y el tipo de la tarjeta anidados (join). El tipo
+// de tarjeta distingue un consumo a crédito (deuda) de un gasto con débito
+// (efectivo real), que se contabilizan distinto.
 type TxWithCategory = TransactionRow & {
   category?: { name: string | null; is_system: boolean | null } | null
+  card?: { type: string | null } | null
 }
 
-// El ajuste por mensualidades MSI ya pagadas es un ingreso técnico que netea la
-// deuda de la tarjeta, no dinero real que entró. Se excluye de los totales de
-// reportes (pero NO de card_usage/credit_line_usage, que sí lo necesitan).
-function isBalanceAdjustment(tx: TxWithCategory): boolean {
-  const c = tx.category
-  return !!c && !!c.is_system && c.name === BALANCE_ADJUSTMENT_CATEGORY
+// Un consumo/reembolso cargado a una tarjeta de CRÉDITO no mueve efectivo: es
+// deuda. Un gasto con débito sí sale de la cuenta ligada, así que NO es crédito.
+function isCreditCard(tx: TxWithCategory): boolean {
+  return tx.card?.type === 'credit'
 }
+
+const SELECT_WITH_JOINS = '*, category:categories(name, is_system), card:cards(type)'
 
 export interface ReportFilters {
   startDate?: string
@@ -36,7 +37,7 @@ export function useTransactionsSummary(userId?: string, filters?: ReportFilters)
 
       let query = supabase
         .from('transactions')
-        .select('*, category:categories(name, is_system)')
+        .select(SELECT_WITH_JOINS)
         .eq('user_id', userId)
         // Los gastos familiares no forman parte de las finanzas personales.
         .is('family_id', null)
@@ -57,26 +58,54 @@ export function useTransactionsSummary(userId?: string, filters?: ReportFilters)
       const { data, error } = await query
       if (error) throw error
 
-      const txs = (data || []) as TxWithCategory[]
+      const txs = (data || []) as unknown as TxWithCategory[]
 
-      // Totales en la moneda principal: usar base_amount (monto convertido).
-      // Fallback a amount para filas antiguas sin conversión. Los ajustes de
-      // saldo se excluyen: no son flujo de efectivo real.
-      const totalIncome = txs
-        .filter((t) => t.kind === 'income' && !isBalanceAdjustment(t))
-        .reduce((sum, t) => sum + (t.base_amount ?? t.amount), 0)
+      // Totales en la moneda principal: usar base_amount (monto convertido);
+      // fallback a amount para filas antiguas sin conversión.
+      const val = (t: TxWithCategory) => t.base_amount ?? t.amount
 
-      const totalExpense = txs
-        .filter((t) => t.kind === 'expense' && !isBalanceAdjustment(t))
-        .reduce((sum, t) => sum + (t.base_amount ?? t.amount), 0)
+      let income = 0
+      // Consumo a crédito neto (deuda generada en el rango): consumos − reembolsos.
+      let creditUsed = 0
+      // Egreso de efectivo por cuenta/débito (sin pagos de tarjeta ni externas).
+      let cashExpenseAccounts = 0
+      // Transferencias a cuentas ajenas: sale dinero de verdad.
+      let externalTransfers = 0
+      // Pagos de tarjeta: es cuando el consumo a crédito se convierte en efectivo.
+      let cardPayments = 0
 
-      const balance = totalIncome - totalExpense
+      for (const t of txs) {
+        const v = val(t)
+        if (t.kind === 'income') {
+          if (isCreditCard(t)) creditUsed -= v // reembolso: baja la deuda
+          else income += v
+        } else if (t.kind === 'expense') {
+          if (isCreditCard(t)) creditUsed += v
+          else cashExpenseAccounts += v
+        } else if (t.kind === 'transfer') {
+          if (t.is_external) externalTransfers += v
+          // Transferencia entre cuentas propias: no es ingreso ni egreso.
+        } else if (t.kind === 'card_payment') {
+          cardPayments += v
+        }
+      }
+
+      // Egreso de efectivo total y dos balances (ver plan): el de EFECTIVO
+      // reconoce el gasto al pagar (incluye pago de tarjeta, no el consumo a
+      // crédito); el ECONÓMICO lo reconoce al consumir (incluye crédito usado,
+      // no el pago de tarjeta).
+      const cashExpense = cashExpenseAccounts + externalTransfers + cardPayments
+      const balanceCash = income - cashExpense
+      const balanceEconomic =
+        income - cashExpenseAccounts - externalTransfers - creditUsed
 
       return {
-        totalIncome,
-        totalExpense,
-        balance,
-        transactions: txs,
+        totalIncome: income,
+        totalExpense: cashExpense,
+        creditUsed,
+        balanceCash,
+        balanceEconomic,
+        transactions: txs as unknown as TransactionRow[],
       }
     },
     enabled: !!userId,
@@ -91,7 +120,7 @@ export function useMonthlyTotals(userId?: string, filters?: ReportFilters) {
 
       let query = supabase
         .from('transactions')
-        .select('*, category:categories(name, is_system)')
+        .select(SELECT_WITH_JOINS)
         .eq('user_id', userId)
         .is('family_id', null)
 
@@ -105,22 +134,30 @@ export function useMonthlyTotals(userId?: string, filters?: ReportFilters) {
       const { data, error } = await query
       if (error) throw error
 
-      const txs = (data || []) as TxWithCategory[]
+      const txs = (data || []) as unknown as TxWithCategory[]
 
-      // Agrupar por mes
-      const byMonth: Record<string, { income: number; expense: number }> = {}
+      // Agrupar por mes: ingreso, egreso de efectivo y crédito usado.
+      const byMonth: Record<
+        string,
+        { income: number; expense: number; credit: number }
+      > = {}
 
       txs.forEach((tx) => {
-        // Los ajustes de saldo no son flujo real: fuera del histórico mensual.
-        if (isBalanceAdjustment(tx)) return
         const month = tx.tx_date.slice(0, 7) // YYYY-MM
         if (!byMonth[month]) {
-          byMonth[month] = { income: 0, expense: 0 }
+          byMonth[month] = { income: 0, expense: 0, credit: 0 }
         }
         const value = tx.base_amount ?? tx.amount
+        const credit = isCreditCard(tx)
         if (tx.kind === 'income') {
-          byMonth[month].income += value
+          if (credit) byMonth[month].credit -= value // reembolso
+          else byMonth[month].income += value
         } else if (tx.kind === 'expense') {
+          if (credit) byMonth[month].credit += value
+          else byMonth[month].expense += value
+        } else if (tx.kind === 'transfer') {
+          if (tx.is_external) byMonth[month].expense += value
+        } else if (tx.kind === 'card_payment') {
           byMonth[month].expense += value
         }
       })
@@ -186,11 +223,9 @@ export function useCardAccountTotals(userId?: string, filters?: ReportFilters) {
     }
 
     ;(txs || []).forEach((tx) => {
-      // Las transferencias mueven dinero entre cuentas propias: no son ingreso
-      // ni egreso real, y contarlas inflaría ambos lados del desglose.
+      // Solo ingresos y egresos entran al desglose por tarjeta/cuenta. Las
+      // transferencias y los pagos de tarjeta se contabilizan aparte.
       if (tx.kind !== 'income' && tx.kind !== 'expense') return
-      // Los ajustes de saldo no son flujo real: fuera del desglose.
-      if (isBalanceAdjustment(tx as TxWithCategory)) return
       const value = tx.base_amount ?? tx.amount
 
       if (tx.card_id) {

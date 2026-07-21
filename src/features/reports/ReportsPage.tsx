@@ -213,9 +213,9 @@ export function ReportsPage() {
         </Card>
       )}
 
-      {/* Resumen de tarjetas */}
+      {/* Resumen: ingresos, egresos y crédito usado. */}
       {summary && (
-        <div className="mb-6 grid gap-3 sm:grid-cols-3">
+        <div className="mb-3 grid gap-3 sm:grid-cols-3">
           <Card className="bg-gradient-to-br from-green-50 to-emerald-50">
             <p className="text-xs text-slate-600 dark:text-slate-300">{t('Total Ingresos')}</p>
             <p className="text-2xl font-semibold text-green-600">
@@ -227,21 +227,61 @@ export function ReportsPage() {
             <p className="text-2xl font-semibold text-red-600 dark:text-red-400">
               <Money amount={summary.totalExpense} currency={mainCurrency} />
             </p>
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+              {t('Efectivo que salió (incluye pagos de tarjeta)')}
+            </p>
+          </Card>
+          <Card className="bg-gradient-to-br from-indigo-50 to-violet-50">
+            <p className="text-xs text-slate-600 dark:text-slate-300">{t('Crédito usado')}</p>
+            <p className="text-2xl font-semibold text-indigo-600 dark:text-indigo-400">
+              <Money amount={summary.creditUsed} currency={mainCurrency} />
+            </p>
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+              {t('Deuda generada con tarjeta en el periodo')}
+            </p>
+          </Card>
+        </div>
+      )}
+
+      {/* Dos balances: efectivo (caja) y económico (reconoce el crédito). */}
+      {summary && (
+        <div className="mb-6 grid gap-3 sm:grid-cols-2">
+          <Card
+            className={`bg-gradient-to-br ${
+              summary.balanceCash >= 0 ? 'from-blue-50 to-cyan-50' : 'from-orange-50 to-yellow-50'
+            }`}
+          >
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              {t('Balance efectivo')}
+            </p>
+            <p
+              className={`text-2xl font-semibold ${
+                summary.balanceCash >= 0 ? 'text-blue-600' : 'text-orange-600'
+              }`}
+            >
+              <Money amount={summary.balanceCash} currency={mainCurrency} />
+            </p>
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+              {t('Ingresos − egresos de efectivo. El consumo a crédito no cuenta hasta que lo pagas.')}
+            </p>
           </Card>
           <Card
             className={`bg-gradient-to-br ${
-              summary.balance >= 0
-                ? 'from-blue-50 to-cyan-50'
-                : 'from-orange-50 to-yellow-50'
+              summary.balanceEconomic >= 0 ? 'from-blue-50 to-cyan-50' : 'from-orange-50 to-yellow-50'
             }`}
           >
-            <p className="text-xs text-slate-600 dark:text-slate-300">{t('Balance')}</p>
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              {t('Balance económico')}
+            </p>
             <p
               className={`text-2xl font-semibold ${
-                summary.balance >= 0 ? 'text-blue-600' : 'text-orange-600'
+                summary.balanceEconomic >= 0 ? 'text-blue-600' : 'text-orange-600'
               }`}
             >
-              <Money amount={summary.balance} currency={mainCurrency} />
+              <Money amount={summary.balanceEconomic} currency={mainCurrency} />
+            </p>
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+              {t('Reconoce el gasto al consumir con tarjeta (resta el crédito usado).')}
             </p>
           </Card>
         </div>

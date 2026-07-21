@@ -22,6 +22,7 @@ interface DataPoint {
   monthLabel: string
   income: number
   expense: number
+  credit?: number
 }
 
 interface IncomeExpenseChartProps {
@@ -52,9 +53,13 @@ export function IncomeExpenseChart({
   const meta = CHART_META.incomeExpense
   const incomeColor = seriesColor(config, meta, 'income')
   const expenseColor = seriesColor(config, meta, 'expense')
+  const creditColor = seriesColor(config, meta, 'credit')
   const hidden = config?.hiddenSeries ?? []
   const showIncome = !hidden.includes('income')
   const showExpense = !hidden.includes('expense')
+  // El desglose por tarjeta/cuenta reusa este gráfico sin datos de crédito.
+  const hasCredit = data.some((d) => (d.credit ?? 0) !== 0)
+  const showCredit = hasCredit && !hidden.includes('credit')
 
   const tooltip = (
     <Tooltip
@@ -84,6 +89,9 @@ export function IncomeExpenseChart({
           {showExpense && (
             <Line type="monotone" dataKey="expense" stroke={expenseColor} name={t('Egresos')} strokeWidth={2} />
           )}
+          {showCredit && (
+            <Line type="monotone" dataKey="credit" stroke={creditColor} name={t('Crédito usado')} strokeWidth={2} />
+          )}
         </LineChart>
       ) : (
         <BarChart data={data}>
@@ -94,6 +102,7 @@ export function IncomeExpenseChart({
           <Legend wrapperStyle={{ color: axisColor }} />
           {showIncome && <Bar dataKey="income" fill={incomeColor} name={t('Ingresos')} />}
           {showExpense && <Bar dataKey="expense" fill={expenseColor} name={t('Egresos')} />}
+          {showCredit && <Bar dataKey="credit" fill={creditColor} name={t('Crédito usado')} />}
         </BarChart>
       )}
     </ResponsiveContainer>

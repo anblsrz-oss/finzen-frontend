@@ -109,18 +109,18 @@ export function DashboardPage() {
           </Card>
           <Card
             className={`bg-gradient-to-br ${
-              summary.balance >= 0
+              summary.balanceCash >= 0
                 ? 'from-blue-50 to-cyan-50'
                 : 'from-orange-50 to-yellow-50'
             }`}
           >
-            <p className="text-xs text-slate-600 dark:text-slate-300">{t('Balance')}</p>
+            <p className="text-xs text-slate-600 dark:text-slate-300">{t('Balance efectivo')}</p>
             <p
               className={`text-2xl font-semibold ${
-                summary.balance >= 0 ? 'text-blue-600' : 'text-orange-600'
+                summary.balanceCash >= 0 ? 'text-blue-600' : 'text-orange-600'
               }`}
             >
-              <Money amount={summary.balance} currency={mainCurrency} />
+              <Money amount={summary.balanceCash} currency={mainCurrency} />
             </p>
           </Card>
         </div>

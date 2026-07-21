@@ -14,7 +14,7 @@ export interface FilterState {
   cardIds: string[]
   accountIds: string[]
   categoryIds: string[]
-  kind: '' | 'income' | 'expense' | 'transfer'
+  kind: '' | 'income' | 'expense' | 'transfer' | 'card_payment'
   status: '' | 'pending' | 'settled'
   minAmount: string
   maxAmount: string
@@ -162,6 +162,7 @@ export function TransactionFilters({
               { value: 'income', label: t('Ingreso') },
               { value: 'expense', label: t('Egreso') },
               { value: 'transfer', label: t('Transferencia') },
+              { value: 'card_payment', label: t('Pago de tarjeta') },
             ]}
           />
           <Select

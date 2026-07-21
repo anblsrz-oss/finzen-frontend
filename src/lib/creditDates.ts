@@ -7,6 +7,8 @@
 
 import { clampDayToMonth, toISODate, parseLocalDate, monthStartISO } from '@/lib/dates'
 
+const DAY_MS = 86_400_000
+
 export interface CreditPeriod {
   /** Primer día del mes del corte, "YYYY-MM-01". Clave del periodo. */
   periodMonth: string
@@ -71,6 +73,26 @@ export function currentPeriod(
     cutDate,
     paymentDate: paymentDateForCut(line.cut_day, line.payment_day, cutDate),
   }
+}
+
+/**
+ * Ventana del periodo vigente: del día siguiente al corte anterior hasta el
+ * corte actual (inclusive). Es el rango de consumos que se pagan en este ciclo.
+ * `endOverride` permite usar una fecha de corte confirmada por el usuario.
+ */
+export function periodWindow(
+  line: { cut_day: number | null; payment_day: number | null },
+  today: Date = new Date(),
+  endOverride?: string,
+): { start: string; end: string } | null {
+  const period = currentPeriod(line, today)
+  if (!period || !line.cut_day) return null
+  const end = endOverride ?? period.cutDate
+  const cut = parseLocalDate(period.cutDate)
+  const prevRef = new Date(cut.getFullYear(), cut.getMonth() - 1, 1)
+  const prevCut = cutDateForMonth(line.cut_day, prevRef)
+  const start = toISODate(new Date(parseLocalDate(prevCut).getTime() + DAY_MS))
+  return { start, end }
 }
 
 /** Diferencia en días entre la fecha confirmada y la calculada (+ = se recorrió después). */

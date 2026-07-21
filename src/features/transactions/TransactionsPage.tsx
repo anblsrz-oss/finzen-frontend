@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import {
@@ -11,6 +11,7 @@ import type { TransactionFilter } from '@/hooks/useTransactions'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useAccounts } from '@/hooks/useAccounts'
 import { useCards } from '@/hooks/useCards'
+import { useCreditLines } from '@/hooks/useCreditLines'
 import { useCategories } from '@/hooks/useCategories'
 import { useMyFamilies, useFamilyCards } from '@/hooks/useFamily'
 import { useEntitlements } from '@/hooks/useAppConfig'
@@ -36,9 +37,18 @@ export function TransactionsPage() {
   const userId = session?.user?.id
   const [showForm, setShowForm] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [editingTx, setEditingTx] = useState<TransactionRow | null>(null)
   const [deleting, setDeleting] = useState<TransactionRow | null>(null)
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const formRef = useRef<HTMLDivElement>(null)
+
+  // En móvil, al editar hay que llevar al usuario hasta el formulario de arriba.
+  useEffect(() => {
+    if (editingTx) {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [editingTx])
 
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS)
 
@@ -82,6 +92,7 @@ export function TransactionsPage() {
   const totalCountQuery = useTransactionsCount(userId)
   const accountsQuery = useAccounts(userId)
   const cardsQuery = useCards(userId)
+  const creditLinesQuery = useCreditLines(userId)
   const categoriesQuery = useCategories(userId)
   const deletionsQuery = useTransactionDeletions(userId)
   const deleteTx = useDeleteTransaction()
@@ -97,6 +108,7 @@ export function TransactionsPage() {
   const totalCount = totalCountQuery.data ?? 0
   const accounts = accountsQuery.data || []
   const cards = cardsQuery.data || []
+  const creditLines = creditLinesQuery.data || []
   const categories = categoriesQuery.data || []
   const deletions = deletionsQuery.data || []
   const familyCards = familyCardsQuery.data || []
@@ -104,6 +116,8 @@ export function TransactionsPage() {
   const getAccountName = (id?: string) =>
     accounts.find((a) => a.id === id)?.name || '—'
   const getCardName = (id?: string) => cards.find((c) => c.id === id)?.name || '—'
+  const getLineName = (id?: string) =>
+    creditLines.find((l) => l.id === id)?.name || '—'
   const getCategoryName = (id?: string) =>
     categories.find((c) => c.id === id)?.name || '—'
 
@@ -133,7 +147,24 @@ export function TransactionsPage() {
       ? t('📥 Ingreso')
       : kind === 'expense'
         ? t('📤 Egreso')
-        : t('🔄 Transferencia')
+        : kind === 'card_payment'
+          ? t('💳 Pago de tarjeta')
+          : t('🔄 Transferencia')
+
+  // Origen/destino que se muestra bajo el concepto, según el tipo.
+  const flowLabel = (tx: TransactionRow) => {
+    if (tx.kind === 'transfer') {
+      return tx.is_external
+        ? `${getAccountName(tx.account_id || undefined)} → ${t('cuenta externa')}`
+        : `${getAccountName(tx.account_id || undefined)} → ${getAccountName(tx.to_account_id || undefined)}`
+    }
+    if (tx.kind === 'card_payment') {
+      return `${getAccountName(tx.account_id || undefined)} → ${getLineName(tx.to_credit_line_id || undefined)}`
+    }
+    return tx.card_id
+      ? getCardName(tx.card_id)
+      : getAccountName(tx.account_id || undefined)
+  }
 
   return (
     <>
@@ -158,7 +189,12 @@ export function TransactionsPage() {
                 limit={transactionLimit}
                 lockedTooltip={t('Plan gratis: máximo {{n}} transacciones. Actualiza a Premium para registrar más.', { n: transactionLimit })}
               >
-                <Button onClick={() => setShowForm(true)}>
+                <Button
+                  onClick={() => {
+                    setEditingTx(null)
+                    setShowForm(true)
+                  }}
+                >
                   {t('+ Nueva transacción')}
                 </Button>
               </PremiumGate>
@@ -175,7 +211,7 @@ export function TransactionsPage() {
         </Card>
       )}
 
-      {showForm && (
+      {showForm && !editingTx && (
         <TransactionForm
           accounts={accounts}
           cards={cards}
@@ -183,6 +219,23 @@ export function TransactionsPage() {
           familyCards={familyCards}
           onSuccess={() => setShowForm(false)}
         />
+      )}
+
+      {editingTx && (
+        <div ref={formRef} className="scroll-mt-4">
+          {/* key = id: fuerza remontar al pasar de una transacción a otra, para
+              no arrastrar los defaultValues de la anterior. */}
+          <TransactionForm
+            key={editingTx.id}
+            accounts={accounts}
+            cards={cards}
+            categories={categories}
+            familyCards={familyCards}
+            transaction={editingTx}
+            onSuccess={() => setEditingTx(null)}
+            onCancel={() => setEditingTx(null)}
+          />
+        </div>
       )}
 
       {/* Historial de eliminaciones */}
@@ -265,13 +318,9 @@ export function TransactionsPage() {
                   )}
                 </div>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  {getCategoryName(tx.category_id || undefined)} •{' '}
-                  {tx.kind === 'transfer'
-                    ? `${getAccountName(tx.account_id || undefined)} → ${getAccountName(tx.to_account_id || undefined)}`
-                    : tx.card_id
-                      ? `${getCardName(tx.card_id)}`
-                      : getAccountName(tx.account_id || undefined)}{' '}
-                  • {formatDate(tx.tx_date)}
+                  {(tx.kind === 'income' || tx.kind === 'expense') &&
+                    `${getCategoryName(tx.category_id || undefined)} • `}
+                  {flowLabel(tx)} • {formatDate(tx.tx_date)}
                 </p>
                 {tx.notes && (
                   <p className="mt-1 text-xs italic text-slate-400 dark:text-slate-500">{tx.notes}</p>
@@ -283,15 +332,26 @@ export function TransactionsPage() {
                     tx.kind === 'income' ? 'text-green-600' : 'text-slate-800 dark:text-slate-100'
                   }`}
                 >
-                  {tx.kind === 'income' ? '+' : '-'}
+                  {tx.kind === 'income' ? '+' : tx.kind === 'transfer' && !tx.is_external ? '' : '-'}
                   <Money amount={tx.amount} currency={tx.currency} />
                 </p>
-                <button
-                  onClick={() => openDelete(tx)}
-                  className="text-xs font-medium text-red-500 hover:text-red-700"
-                >
-                  🗑 {t('Eliminar')}
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      setShowForm(false)
+                      setEditingTx(tx)
+                    }}
+                    className="text-xs font-medium text-brand-600 hover:text-brand-800 dark:text-brand-400"
+                  >
+                    ✏️ {t('Editar')}
+                  </button>
+                  <button
+                    onClick={() => openDelete(tx)}
+                    className="text-xs font-medium text-red-500 hover:text-red-700"
+                  >
+                    🗑 {t('Eliminar')}
+                  </button>
+                </div>
               </div>
             </Card>
           ))}

@@ -32,6 +32,7 @@ export interface ChartMeta {
 
 const INCOME_COLOR = '#16a34a'
 const EXPENSE_COLOR = '#ef4444'
+const CREDIT_COLOR = '#6366f1'
 
 // Series ingreso/egreso compartidas por las barras agrupadas.
 const incomeExpenseSeries: ChartSeriesMeta[] = [
@@ -39,11 +40,17 @@ const incomeExpenseSeries: ChartSeriesMeta[] = [
   { key: 'expense', labelKey: 'Egresos', defaultColor: EXPENSE_COLOR, togglable: true },
 ]
 
+// El gráfico mensual añade el crédito usado; los desgloses por tarjeta/cuenta no.
+const incomeExpenseCreditSeries: ChartSeriesMeta[] = [
+  ...incomeExpenseSeries,
+  { key: 'credit', labelKey: 'Crédito usado', defaultColor: CREDIT_COLOR, togglable: true },
+]
+
 export const CHART_META: Record<ChartId, ChartMeta> = {
   incomeExpense: {
     id: 'incomeExpense',
     titleKey: 'Ingresos vs Egresos',
-    series: incomeExpenseSeries,
+    series: incomeExpenseCreditSeries,
     perPointColors: false,
   },
   category: {

@@ -5,7 +5,8 @@ import { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useCards, useCardUsage } from '@/hooks/useCards'
-import type { CreditLineRow, CreditLineUsageRow, CardUsageRow } from '@/types/db'
+import { periodWindow } from '@/lib/creditDates'
+import type { CardRow, CreditLineRow, CreditLineUsageRow, CardUsageRow } from '@/types/db'
 
 export function useCreditLines(userId?: string) {
   return useQuery({
@@ -126,6 +127,72 @@ export function useCreditUsageBreakdown(userId?: string) {
     isLoading:
       linesQuery.isLoading || cardsQuery.isLoading || cardUsageQuery.isLoading,
   }
+}
+
+// Movimientos de crédito (consumos, reembolsos y pagos) para calcular el estado
+// de cuenta por periodo. Se filtra en cliente por ventana de corte.
+export interface CreditActivity {
+  kind: string
+  amount: number
+  base_amount: number | null
+  currency: string
+  tx_date: string
+  card_id: string | null
+  to_credit_line_id: string | null
+}
+
+export function useCreditActivity(userId?: string) {
+  return useQuery({
+    queryKey: ['credit_activity', userId],
+    queryFn: async () => {
+      if (!userId) return []
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('kind, amount, base_amount, currency, tx_date, card_id, to_credit_line_id')
+        .eq('user_id', userId)
+        .is('family_id', null)
+        .in('kind', ['expense', 'income', 'card_payment'])
+      if (error) throw error
+      return (data || []) as CreditActivity[]
+    },
+    enabled: !!userId,
+  })
+}
+
+export interface LineStatement {
+  /** Ventana corte-a-corte del periodo vigente. */
+  window: { start: string; end: string } | null
+  /** Consumo neto del periodo (consumos − reembolsos). Lo "a pagar" del ciclo. */
+  amount: number
+  /** Pagos abonados a la línea dentro de la ventana. */
+  paid: number
+  currency: string
+}
+
+/** Estado de cuenta del periodo vigente de una línea (cálculo puro). */
+export function computeLineStatement(
+  line: CreditLineRow,
+  cards: CardRow[],
+  activities: CreditActivity[],
+): LineStatement {
+  const win = periodWindow(line)
+  if (!win) return { window: null, amount: 0, paid: 0, currency: line.currency }
+
+  const lineCardIds = new Set(
+    cards.filter((c) => c.credit_line_id === line.id).map((c) => c.id),
+  )
+  let amount = 0
+  let paid = 0
+  for (const a of activities) {
+    if (a.tx_date < win.start || a.tx_date > win.end) continue
+    const v = a.currency === line.currency ? a.amount : a.base_amount ?? a.amount
+    if ((a.kind === 'expense' || a.kind === 'income') && a.card_id && lineCardIds.has(a.card_id)) {
+      amount += a.kind === 'expense' ? v : -v
+    } else if (a.kind === 'card_payment' && a.to_credit_line_id === line.id) {
+      paid += v
+    }
+  }
+  return { window: win, amount, paid, currency: line.currency }
 }
 
 export function useCreateCreditLine() {

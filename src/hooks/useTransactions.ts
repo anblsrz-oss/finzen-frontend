@@ -1,7 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { monthlyPayment } from '@/lib/installments'
-import type { TransactionRow, TxKind, TxSource, TransactionDeletionRow } from '@/types/db'
+import type {
+  TransactionRow,
+  TxKind,
+  TxSource,
+  TransactionDeletionRow,
+  InstallmentPlanPaymentRow,
+} from '@/types/db'
 
 export interface TransactionFilter {
   kind?: TxKind
@@ -127,6 +133,10 @@ export function useCreateTransaction() {
       accountId?: string
       toAccountId?: string
       cardId?: string
+      /** Pago de tarjeta: línea de crédito a la que se abona. */
+      toCreditLineId?: string
+      /** Transferencia a una cuenta que no es del usuario (cuenta como egreso). */
+      isExternal?: boolean
       txDate: string
       notes?: string
       source?: TxSource
@@ -152,6 +162,8 @@ export function useCreateTransaction() {
       if (input.accountId) txData.account_id = input.accountId
       if (input.toAccountId) txData.to_account_id = input.toAccountId
       if (input.cardId) txData.card_id = input.cardId
+      if (input.toCreditLineId) txData.to_credit_line_id = input.toCreditLineId
+      if (input.isExternal) txData.is_external = true
       if (input.notes?.trim()) txData.notes = input.notes
       if (input.source) txData.source = input.source
       if (input.externalId) txData.external_id = input.externalId
@@ -168,6 +180,13 @@ export function useCreateTransaction() {
     onSuccess: (_data, input) => {
       queryClient.invalidateQueries({ queryKey: ['transactions', input.userId] })
       queryClient.invalidateQueries({ queryKey: ['transactions_count', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['account_balances', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['card_usage', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['credit_line_usage', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['credit_activity', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['transactions_summary', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['monthly_totals', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['category_totals', input.userId] })
       if (input.familyId) {
         queryClient.invalidateQueries({
           queryKey: ['family_transactions', input.familyId],
@@ -176,6 +195,70 @@ export function useCreateTransaction() {
           queryKey: ['family_card_usage', input.familyId],
         })
       }
+    },
+  })
+}
+
+// Edita una transacción ya registrada (corregir monto, fecha, categoría, etc.).
+// A diferencia del alta, aquí los campos de relación se escriben SIEMPRE (incluido
+// null) para poder limpiarlos al cambiar de tipo; los balances y el uso de crédito
+// se recalculan solos porque son vistas.
+export function useUpdateTransaction() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: {
+      id: string
+      userId: string
+      kind: TxKind
+      amount: number
+      currency: string
+      fxRate?: number
+      baseAmount?: number
+      concept?: string
+      categoryId?: string | null
+      accountId?: string | null
+      toAccountId?: string | null
+      cardId?: string | null
+      toCreditLineId?: string | null
+      isExternal?: boolean
+      txDate: string
+      notes?: string
+    }) => {
+      const updates: Record<string, any> = {
+        kind: input.kind,
+        amount: input.amount,
+        currency: input.currency,
+        tx_date: input.txDate,
+        concept: input.concept?.trim() || null,
+        category_id: input.categoryId || null,
+        account_id: input.accountId || null,
+        to_account_id: input.toAccountId || null,
+        card_id: input.cardId || null,
+        to_credit_line_id: input.toCreditLineId || null,
+        is_external: input.isExternal ?? false,
+        notes: input.notes?.trim() || null,
+      }
+      if (input.fxRate !== undefined) updates.fx_rate = input.fxRate
+      if (input.baseAmount !== undefined) updates.base_amount = input.baseAmount
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .update(updates)
+        .eq('id', input.id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: (_data, input) => {
+      queryClient.invalidateQueries({ queryKey: ['transactions', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['account_balances', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['card_usage', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['credit_line_usage', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['credit_activity', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['transactions_summary', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['monthly_totals', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['category_totals', input.userId] })
     },
   })
 }
@@ -197,6 +280,8 @@ export function useDeleteTransaction() {
       queryClient.invalidateQueries({ queryKey: ['transactions_count', input.userId] })
       queryClient.invalidateQueries({ queryKey: ['account_balances', input.userId] })
       queryClient.invalidateQueries({ queryKey: ['card_usage', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['credit_line_usage', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['credit_activity', input.userId] })
       queryClient.invalidateQueries({ queryKey: ['transaction_deletions', input.userId] })
       queryClient.invalidateQueries({ queryKey: ['transactions_summary', input.userId] })
       queryClient.invalidateQueries({ queryKey: ['monthly_totals', input.userId] })
@@ -286,6 +371,53 @@ export function useCreateInstallmentPlan() {
     onSuccess: (_data, input) => {
       queryClient.invalidateQueries({
         queryKey: ['installment_plans', input.userId],
+      })
+    },
+  })
+}
+
+// Mensualidades MSI ya conciliadas (ledger installment_plan_payments).
+export function useInstallmentPayments(userId?: string) {
+  return useQuery({
+    queryKey: ['installment_plan_payments', userId],
+    queryFn: async () => {
+      if (!userId) return []
+      const { data, error } = await supabase
+        .from('installment_plan_payments')
+        .select('*')
+        .eq('user_id', userId)
+      if (error) throw error
+      return (data || []) as InstallmentPlanPaymentRow[]
+    },
+    enabled: !!userId,
+  })
+}
+
+// Marca una o varias mensualidades como pagadas. upsert sobre (plan_id,
+// period_month): volver a marcar el mismo mes no duplica la fila.
+export function useConfirmInstallmentPayments() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: {
+      userId: string
+      rows: { planId: string; periodMonth: string; amount: number }[]
+    }) => {
+      if (input.rows.length === 0) return
+      const { error } = await supabase.from('installment_plan_payments').upsert(
+        input.rows.map((r) => ({
+          user_id: input.userId,
+          plan_id: r.planId,
+          period_month: r.periodMonth,
+          amount: r.amount,
+          paid: true,
+        })),
+        { onConflict: 'plan_id,period_month' },
+      )
+      if (error) throw error
+    },
+    onSuccess: (_data, input) => {
+      queryClient.invalidateQueries({
+        queryKey: ['installment_plan_payments', input.userId],
       })
     },
   })

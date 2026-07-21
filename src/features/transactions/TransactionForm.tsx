@@ -1,30 +1,44 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
-import { useCreateTransaction, useCreateInstallmentPlan } from '@/hooks/useTransactions'
+import {
+  useCreateTransaction,
+  useUpdateTransaction,
+  useCreateInstallmentPlan,
+  useInstallmentPlans,
+  useInstallmentPayments,
+  useConfirmInstallmentPayments,
+} from '@/hooks/useTransactions'
+import { useCreditLines } from '@/hooks/useCreditLines'
 import { useFxRate } from '@/hooks/useFxRate'
 import { useEntitlements } from '@/hooks/useAppConfig'
 import { toBaseAmount } from '@/lib/fx'
-import { CURRENCIES, formatMoney, formatDate } from '@/lib/format'
+import { CURRENCIES, formatMoney } from '@/lib/format'
 import { todayISO, formatMonthLabel } from '@/lib/dates'
-import { BALANCE_ADJUSTMENT_CATEGORY } from '@/lib/charts'
 import {
   monthlyPayment,
   elapsedInstallments,
   isRetroactive,
-  adjustmentDate,
+  installmentSchedule,
+  planProgress,
 } from '@/lib/installments'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Card } from '@/components/ui/Card'
-import type { AccountRow, CardRow, CategoryRow, FamilyCardRow } from '@/types/db'
+import type {
+  AccountRow,
+  CardRow,
+  CategoryRow,
+  FamilyCardRow,
+  TransactionRow,
+} from '@/types/db'
 
 const schema = z.object({
-  kind: z.enum(['income', 'expense', 'transfer']),
+  kind: z.enum(['income', 'expense', 'transfer', 'card_payment']),
   amount: z.coerce.number().positive('Monto debe ser mayor a 0'),
   currency: z.string(),
   concept: z.string().optional(),
@@ -32,6 +46,10 @@ const schema = z.object({
   accountId: z.string().optional(),
   toAccountId: z.string().optional(),
   cardId: z.string().optional(),
+  // Pago de tarjeta: línea de crédito a la que se abona.
+  toCreditLineId: z.string().optional(),
+  // Transferencia a una cuenta que no es mía (cuenta como egreso).
+  isExternal: z.boolean().default(false),
   txDate: z.string(),
   notes: z.string().optional(),
   msi: z.boolean().default(false),
@@ -53,7 +71,12 @@ interface TransactionFormProps {
   categories: CategoryRow[]
   // Tarjetas compartidas de mi familia (vista family_cards, sin límite).
   familyCards?: FamilyCardRow[]
+  // Si viene, el formulario edita esa transacción en lugar de crear una nueva.
+  transaction?: TransactionRow
+  // Prefill (p. ej. botón "Pagar" de una línea de crédito).
+  initial?: { kind?: FormData['kind']; toCreditLineId?: string; amount?: number }
   onSuccess?: () => void
+  onCancel?: () => void
 }
 
 export function TransactionForm({
@@ -61,33 +84,71 @@ export function TransactionForm({
   cards,
   categories,
   familyCards = [],
+  transaction,
+  initial,
   onSuccess,
+  onCancel,
 }: TransactionFormProps) {
   const { t } = useTranslation()
   const { session, profile } = useAuth()
+  const userId = session?.user?.id
+  const isEdit = !!transaction
   const createTransaction = useCreateTransaction()
+  const updateTransaction = useUpdateTransaction()
   const createInstallment = useCreateInstallmentPlan()
+  const confirmInstallments = useConfirmInstallmentPayments()
   const { canUseInstallments } = useEntitlements()
   const mainCurrency = profile?.main_currency ?? 'MXN'
+
+  const creditLinesQuery = useCreditLines(userId)
+  const plansQuery = useInstallmentPlans(userId)
+  const paymentsQuery = useInstallmentPayments(userId)
+  const creditLines = creditLinesQuery.data || []
+  const plans = plansQuery.data || []
+  const payments = paymentsQuery.data || []
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     mode: 'onBlur',
-    defaultValues: {
-      kind: 'expense',
-      currency: mainCurrency,
-      txDate: todayISO(),
-      msi: false,
-      msiInterestFree: true,
-      msiStartDate: todayISO(),
-      msiPaidPrevious: false,
-    },
+    defaultValues: transaction
+      ? {
+          kind: transaction.kind,
+          amount: transaction.amount,
+          currency: transaction.currency,
+          concept: transaction.concept ?? '',
+          categoryId: transaction.category_id ?? '',
+          accountId: transaction.account_id ?? '',
+          toAccountId: transaction.to_account_id ?? '',
+          cardId: transaction.card_id ?? '',
+          toCreditLineId: transaction.to_credit_line_id ?? '',
+          isExternal: transaction.is_external,
+          txDate: transaction.tx_date,
+          notes: transaction.notes ?? '',
+          msi: false,
+          msiInterestFree: true,
+          msiStartDate: todayISO(),
+          msiPaidPrevious: false,
+        }
+      : {
+          kind: initial?.kind ?? 'expense',
+          currency: mainCurrency,
+          amount: initial?.amount as any,
+          toCreditLineId: initial?.toCreditLineId ?? '',
+          txDate: todayISO(),
+          isExternal: false,
+          msi: false,
+          msiInterestFree: true,
+          msiStartDate: todayISO(),
+          msiPaidPrevious: false,
+        },
   })
 
   const txKind = form.watch('kind')
   const cardId = form.watch('cardId')
   const currency = form.watch('currency')
   const amountRaw = form.watch('amount')
+  const isExternal = form.watch('isExternal')
+  const toCreditLineId = form.watch('toCreditLineId')
 
   // Multimoneda: cuando la moneda del movimiento difiere de la principal, se
   // obtiene el tipo de cambio (editable) para convertir a la moneda principal.
@@ -123,7 +184,6 @@ export function TransactionForm({
     msiMonths || 0,
   )
   const msiMonthly = monthlyPayment(amountNum, Number(form.watch('msiInterest')) || 0, msiMonths)
-  const msiAdjustment = msiPaidPrevious ? msiMonthly * msiPaidCount : 0
 
   // Al marcar "ya pagué", se propone por defecto lo transcurrido.
   useEffect(() => {
@@ -133,11 +193,6 @@ export function TransactionForm({
   }, [msiPaidPrevious, msiElapsed, form])
   const selectedCard = cards.find((c) => c.id === cardId)
   const isCredit = selectedCard?.type === 'credit'
-
-  // Categoría de sistema donde cae el ajuste por mensualidades ya pagadas.
-  const adjustmentCategoryId = categories.find(
-    (c) => c.is_system && c.name === BALANCE_ADJUSTMENT_CATEGORY,
-  )?.id
 
   const myUserId = session?.user?.id
   // Tarjetas familiares ajenas (del jefe de familia): entran al selector.
@@ -152,8 +207,40 @@ export function TransactionForm({
   )
   const isFamilyTx = !!selectedForeignCard || (!!ownSharedCard && familyExpense)
 
+  // --- Conciliación MSI al pagar la tarjeta -------------------------------
+  // Meses ya pagados por plan, para calcular el avance.
+  const paidByPlan = useMemo(() => {
+    const m = new Map<string, Set<string>>()
+    for (const p of payments) {
+      if (!m.has(p.plan_id)) m.set(p.plan_id, new Set())
+      m.get(p.plan_id)!.add(p.period_month)
+    }
+    return m
+  }, [payments])
+
+  const cardLineOf = (id: string | null) =>
+    id ? cards.find((c) => c.id === id)?.credit_line_id ?? null : null
+
+  // Planes activos de la línea que se está pagando, con su mensualidad pendiente.
+  const linePlans = useMemo(() => {
+    if (txKind !== 'card_payment' || !toCreditLineId) return []
+    return plans
+      .filter((p) => cardLineOf(p.card_id) === toCreditLineId)
+      .map((p) => ({
+        plan: p,
+        progress: planProgress(
+          { start_date: p.start_date, months: p.months, monthly_payment: p.monthly_payment },
+          paidByPlan.get(p.id) ?? new Set<string>(),
+        ),
+      }))
+      .filter((x) => x.progress.remainingCount > 0 && x.progress.nextDuePeriod)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [txKind, toCreditLineId, plans, paidByPlan, cards])
+
+  const [msiToPay, setMsiToPay] = useState<Record<string, boolean>>({})
+
   async function onSubmit(data: FormData) {
-    if (!session?.user?.id) return
+    if (!userId) return
 
     // Validaciones según tipo
     if (data.kind === 'income' && !data.accountId) {
@@ -164,12 +251,24 @@ export function TransactionForm({
       alert(t('Selecciona una cuenta o tarjeta'))
       return
     }
-    if (data.kind === 'transfer' && (!data.accountId || !data.toAccountId)) {
-      alert(t('Selecciona cuenta origen y destino'))
+    if (data.kind === 'transfer' && !data.accountId) {
+      alert(t('Selecciona la cuenta origen'))
       return
     }
-    if (data.kind === 'transfer' && data.accountId === data.toAccountId) {
+    if (data.kind === 'transfer' && !data.isExternal && !data.toAccountId) {
+      alert(t('Selecciona la cuenta destino'))
+      return
+    }
+    if (
+      data.kind === 'transfer' &&
+      !data.isExternal &&
+      data.accountId === data.toAccountId
+    ) {
       alert(t('Las cuentas no pueden ser la misma'))
+      return
+    }
+    if (data.kind === 'card_payment' && (!data.accountId || !data.toCreditLineId)) {
+      alert(t('Selecciona la cuenta origen y la línea de crédito a pagar'))
       return
     }
 
@@ -187,84 +286,155 @@ export function TransactionForm({
       return
     }
 
-    createTransaction.mutate(
-      {
-        userId: session.user.id,
+    // Resolver cuenta/tarjeta según el tipo.
+    let resolvedAccountId: string | undefined
+    let resolvedToAccountId: string | undefined
+    let resolvedCardId: string | undefined
+    let resolvedToCreditLineId: string | undefined
+    let resolvedCategoryId: string | undefined = data.categoryId || undefined
+    let external = false
+
+    if (data.kind === 'income') {
+      resolvedAccountId = data.accountId || undefined
+    } else if (data.kind === 'expense') {
+      resolvedCardId = data.cardId || undefined
+      if (resolvedCardId) {
+        // Débito descuenta de su cuenta ligada; crédito no toca ninguna cuenta.
+        const card = cards.find((c) => c.id === resolvedCardId)
+        if (card?.type === 'debit') {
+          resolvedAccountId = card.account_id || undefined
+        } else if (!card) {
+          // Tarjeta familiar ajena: gasto sin cuenta propia.
+          resolvedAccountId = undefined
+        }
+      } else {
+        resolvedAccountId = data.accountId || undefined
+      }
+    } else if (data.kind === 'transfer') {
+      resolvedAccountId = data.accountId || undefined
+      external = data.isExternal
+      resolvedToAccountId = external ? undefined : data.toAccountId || undefined
+      resolvedCategoryId = undefined
+    } else if (data.kind === 'card_payment') {
+      resolvedAccountId = data.accountId || undefined
+      resolvedToCreditLineId = data.toCreditLineId || undefined
+      resolvedCategoryId = undefined
+    }
+
+    try {
+      if (isEdit && transaction) {
+        await updateTransaction.mutateAsync({
+          id: transaction.id,
+          userId,
+          kind: data.kind,
+          amount: data.amount,
+          currency: data.currency,
+          fxRate,
+          baseAmount,
+          concept: data.concept,
+          categoryId: resolvedCategoryId ?? null,
+          accountId: resolvedAccountId ?? null,
+          toAccountId: resolvedToAccountId ?? null,
+          cardId: resolvedCardId ?? null,
+          toCreditLineId: resolvedToCreditLineId ?? null,
+          isExternal: external,
+          txDate: data.txDate,
+          notes: data.notes,
+        })
+        onSuccess?.()
+        return
+      }
+
+      const tx = await createTransaction.mutateAsync({
+        userId,
         kind: data.kind,
         amount: data.amount,
         currency: data.currency,
         fxRate,
         baseAmount,
         concept: data.concept,
-        categoryId: data.categoryId,
+        categoryId: resolvedCategoryId,
         // Un gasto familiar va solo contra la tarjeta, nunca contra una cuenta.
-        accountId: familyId ? undefined : data.accountId,
-        toAccountId: data.toAccountId,
-        cardId: data.cardId,
+        accountId: familyId ? undefined : resolvedAccountId,
+        toAccountId: resolvedToAccountId,
+        cardId: resolvedCardId,
+        toCreditLineId: resolvedToCreditLineId,
+        isExternal: external,
         txDate: data.txDate,
         notes: data.notes,
         familyId,
-      },
-      {
-        onSuccess: async (tx) => {
-          // Si es MSI/diferido (premium), crear installment_plan
-          if (
-            canUseInstallments &&
-            msi &&
-            isCredit &&
-            !familyId &&
-            data.msiMonths &&
-            data.msiMonths > 0
-          ) {
-            await createInstallment.mutateAsync({
-              userId: session.user.id,
-              cardId: cardId!,
-              transactionId: tx.id,
-              description: data.concept || t('Compra'),
-              totalAmount: data.amount,
-              currency: data.currency,
-              months: data.msiMonths,
-              isInterestFree: data.msiInterestFree,
-              interestAmount: data.msiInterest || 0,
-              startDate: data.msiStartDate,
-            })
+      })
 
-            // Mensualidades ya pagadas de periodos anteriores: se compensan
-            // con un ingreso de ajuste fechado en el mes pasado, para que el
-            // histórico no muestre un negativo que nunca existió.
-            const paid = Math.min(data.msiPaidCount || 0, data.msiMonths)
-            if (data.msiPaidPrevious && paid > 0) {
-              const monthly = monthlyPayment(
-                data.amount,
-                data.msiInterest || 0,
-                data.msiMonths,
-              )
-              await createTransaction.mutateAsync({
-                userId: session.user.id,
-                kind: 'income',
-                amount: monthly * paid,
-                currency: data.currency,
-                fxRate,
-                baseAmount: needsFx ? toBaseAmount(monthly * paid, fxRate) : monthly * paid,
-                concept: t('Ajuste: {{n}} mensualidades ya pagadas de {{desc}}', {
-                  n: paid,
-                  desc: data.concept || t('Compra'),
-                }),
-                categoryId: adjustmentCategoryId,
-                cardId: cardId!,
-                txDate: adjustmentDate(),
-              })
-            }
-          }
-          form.reset()
-          onSuccess?.()
-        },
-        onError: (error: any) => {
-          alert(`Error: ${error.message}`)
-        },
-      },
-    )
+      // MSI/diferido (premium): crear el plan y sembrar el ledger de meses ya
+      // pagados (en lugar del viejo ingreso de "Ajuste de saldo").
+      if (
+        canUseInstallments &&
+        msi &&
+        isCredit &&
+        !familyId &&
+        data.msiMonths &&
+        data.msiMonths > 0
+      ) {
+        const plan = await createInstallment.mutateAsync({
+          userId,
+          cardId: cardId!,
+          transactionId: tx.id,
+          description: data.concept || t('Compra'),
+          totalAmount: data.amount,
+          currency: data.currency,
+          months: data.msiMonths,
+          isInterestFree: data.msiInterestFree,
+          interestAmount: data.msiInterest || 0,
+          startDate: data.msiStartDate,
+        })
+
+        const paid = Math.min(data.msiPaidCount || 0, data.msiMonths)
+        if (data.msiPaidPrevious && paid > 0) {
+          const monthly = monthlyPayment(
+            data.amount,
+            data.msiInterest || 0,
+            data.msiMonths,
+          )
+          const schedule = installmentSchedule(
+            data.msiStartDate || todayISO(),
+            data.msiMonths,
+            monthly,
+          )
+          await confirmInstallments.mutateAsync({
+            userId,
+            rows: schedule.slice(0, paid).map((s) => ({
+              planId: plan.id,
+              periodMonth: s.periodMonth,
+              amount: s.amount,
+            })),
+          })
+        }
+      }
+
+      // Pago de tarjeta: conciliar las mensualidades MSI marcadas del periodo.
+      if (data.kind === 'card_payment') {
+        const rows = linePlans
+          .filter((x) => msiToPay[x.plan.id] && x.progress.nextDuePeriod)
+          .map((x) => ({
+            planId: x.plan.id,
+            periodMonth: x.progress.nextDuePeriod!,
+            amount: x.progress.monthly,
+          }))
+        if (rows.length > 0) {
+          await confirmInstallments.mutateAsync({ userId, rows })
+        }
+      }
+
+      form.reset()
+      setMsiToPay({})
+      onSuccess?.()
+    } catch (error: any) {
+      alert(`Error: ${error.message}`)
+    }
   }
+
+  const submitting =
+    createTransaction.isPending || updateTransaction.isPending
 
   return (
     <Card className="mb-6 bg-slate-50 dark:bg-slate-900">
@@ -276,6 +446,7 @@ export function TransactionForm({
             { value: 'income', label: t('📥 Ingreso') },
             { value: 'expense', label: t('📤 Egreso') },
             { value: 'transfer', label: t('🔄 Transferencia') },
+            { value: 'card_payment', label: t('💳 Pago de tarjeta') },
           ]}
           {...form.register('kind')}
         />
@@ -335,23 +506,25 @@ export function TransactionForm({
           </div>
         )}
 
-        {/* Concepto y categoría */}
+        {/* Concepto y categoría (la categoría no aplica a transferencias ni pagos) */}
         <div className="grid grid-cols-2 gap-4">
           <Input
             label={t('Concepto')}
             placeholder={t('Ej: Almuerzo')}
             {...form.register('concept')}
           />
-          <Select
-            label={t('Categoría')}
-            options={[
-              { value: '', label: t('Sin categoría') },
-              ...categories
-                .filter((c) => c.kind === (txKind === 'income' ? 'income' : 'expense'))
-                .map((c) => ({ value: c.id, label: `${c.icon} ${c.name}` })),
-            ]}
-            {...form.register('categoryId')}
-          />
+          {(txKind === 'income' || txKind === 'expense') && (
+            <Select
+              label={t('Categoría')}
+              options={[
+                { value: '', label: t('Sin categoría') },
+                ...categories
+                  .filter((c) => c.kind === (txKind === 'income' ? 'income' : 'expense'))
+                  .map((c) => ({ value: c.id, label: `${c.icon} ${c.name}` })),
+              ]}
+              {...form.register('categoryId')}
+            />
+          )}
         </div>
 
         {/* Cuentas/Tarjetas según tipo */}
@@ -415,28 +588,111 @@ export function TransactionForm({
         )}
 
         {txKind === 'transfer' && (
-          <div className="grid grid-cols-2 gap-4">
-            <Select
-              label={t('Cuenta origen')}
-              options={[
-                { value: '', label: t('Selecciona origen') },
-                ...accounts.map((a) => ({ value: a.id, label: a.name })),
-              ]}
-              {...form.register('accountId')}
-            />
-            <Select
-              label={t('Cuenta destino')}
-              options={[
-                { value: '', label: t('Selecciona destino') },
-                ...accounts.map((a) => ({ value: a.id, label: a.name })),
-              ]}
-              {...form.register('toAccountId')}
-            />
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-4">
+              <Select
+                label={t('Cuenta origen')}
+                options={[
+                  { value: '', label: t('Selecciona origen') },
+                  ...accounts.map((a) => ({ value: a.id, label: a.name })),
+                ]}
+                {...form.register('accountId')}
+              />
+              {!isExternal && (
+                <Select
+                  label={t('Cuenta destino')}
+                  options={[
+                    { value: '', label: t('Selecciona destino') },
+                    ...accounts.map((a) => ({ value: a.id, label: a.name })),
+                  ]}
+                  {...form.register('toAccountId')}
+                />
+              )}
+            </div>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                {...form.register('isExternal')}
+                className="cursor-pointer"
+              />
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                {t('La cuenta destino no es mía (cuenta externa)')}
+              </span>
+            </label>
+            {isExternal && (
+              <p className="rounded-lg bg-amber-50 dark:bg-amber-900/20 p-2 text-xs text-amber-700 dark:text-amber-300">
+                {t('Sale dinero de verdad: se contará como egreso en tus reportes.')}
+              </p>
+            )}
           </div>
         )}
 
-        {/* MSI/Diferido (configurable como premium; crédito, egreso; no aplica a gastos familiares) */}
-        {canUseInstallments &&
+        {txKind === 'card_payment' && (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-4">
+              <Select
+                label={t('Cuenta origen')}
+                options={[
+                  { value: '', label: t('Selecciona la cuenta') },
+                  ...accounts.map((a) => ({ value: a.id, label: a.name })),
+                ]}
+                {...form.register('accountId')}
+              />
+              <Select
+                label={t('Línea de crédito a pagar')}
+                options={[
+                  { value: '', label: t('Selecciona la línea') },
+                  ...creditLines.map((l) => ({ value: l.id, label: l.name })),
+                ]}
+                {...form.register('toCreditLineId')}
+              />
+            </div>
+
+            {/* Conciliación MSI: marcar la mensualidad del periodo por plan. */}
+            {linePlans.length > 0 && (
+              <div className="space-y-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3">
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                  💳 {t('Meses sin intereses de esta línea')}
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  {t('Marca las mensualidades que cubre este pago.')}
+                </p>
+                {linePlans.map((x) => (
+                  <label key={x.plan.id} className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      className="mt-1 cursor-pointer"
+                      checked={!!msiToPay[x.plan.id]}
+                      onChange={(e) =>
+                        setMsiToPay((prev) => ({
+                          ...prev,
+                          [x.plan.id]: e.target.checked,
+                        }))
+                      }
+                    />
+                    <span className="text-sm text-slate-700 dark:text-slate-200">
+                      {x.plan.description || t('Compra')} ·{' '}
+                      {formatMoney(x.progress.monthly, x.plan.currency)}{' '}
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        ({t('mensualidad de {{month}}; van {{paid}}/{{total}})', {
+                          month: x.progress.nextDuePeriod
+                            ? formatMonthLabel(x.progress.nextDuePeriod)
+                            : '',
+                          paid: x.progress.paidCount,
+                          total: x.progress.months,
+                        })}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* MSI/Diferido (solo al crear; crédito, egreso; no aplica a gastos familiares) */}
+        {!isEdit &&
+          canUseInstallments &&
           txKind === 'expense' &&
           !isFamilyTx &&
           isCredit && (
@@ -524,11 +780,11 @@ export function TransactionForm({
                         max={msiMonths || undefined}
                         {...form.register('msiPaidCount')}
                       />
-                      {msiAdjustment > 0 && (
+                      {msiPaidCount > 0 && (
                         <p className="rounded bg-emerald-50 p-2 text-xs text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200">
-                          {t('Se registrará un ajuste de {{amount}} con fecha {{date}} para que el historial no quede negativo.', {
-                            amount: formatMoney(msiAdjustment, currency),
-                            date: formatDate(adjustmentDate()),
+                          {t('Se marcarán {{n}} mensualidades ({{amount}}) como ya pagadas.', {
+                            n: msiPaidCount,
+                            amount: formatMoney(msiMonthly * msiPaidCount, currency),
                           })}
                         </p>
                       )}
@@ -548,12 +804,18 @@ export function TransactionForm({
 
         {/* Botones */}
         <div className="flex gap-2">
-          <Button
-            type="submit"
-            disabled={createTransaction.isPending}
-          >
-            {createTransaction.isPending ? t('Guardando…') : t('Registrar')}
+          <Button type="submit" disabled={submitting}>
+            {submitting
+              ? t('Guardando…')
+              : isEdit
+                ? t('Guardar cambios')
+                : t('Registrar')}
           </Button>
+          {onCancel && (
+            <Button type="button" variant="ghost" onClick={onCancel}>
+              {t('Cancelar')}
+            </Button>
+          )}
         </div>
       </form>
     </Card>
