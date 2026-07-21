@@ -75,7 +75,7 @@ Falta registrar el esquema `com.ahorbit.app://auth-callback` en cada plataforma:
 ## 5. Sincronizar correo (Gmail) — multiplataforma
 
 - Función: [src/features/email/EmailSyncPage.tsx](src/features/email/EmailSyncPage.tsx),
-  Edge Function [supabase/functions/sync-email/index.ts](supabase/functions/sync-email/index.ts).
+  Edge Function [sync-email](https://github.com/anblsrz-oss/finzen-backend/blob/main/supabase/functions/sync-email/index.ts) (repo `finzen-backend`).
 - Requiere el scope `https://www.googleapis.com/auth/gmail.readonly`. El botón
   "Conectar Gmail" ya lo pide. En Google Cloud, habilita la **Gmail API** y agrega
   ese scope en la pantalla de consentimiento OAuth.
@@ -101,8 +101,8 @@ Falta registrar el esquema `com.ahorbit.app://auth-callback` en cada plataforma:
 
 ## 7. Base de datos
 
-Aplica la migración [supabase/migrations/0002_ingestion.sql](supabase/migrations/0002_ingestion.sql)
-en Supabase (SQL Editor o `supabase db push`). Es idempotente. Agrega a
+Aplica la migración [0002_ingestion.sql](https://github.com/anblsrz-oss/finzen-backend/blob/main/supabase/migrations/0002_ingestion.sql)
+(repo `finzen-backend`) en Supabase (SQL Editor o `supabase db push`). Es idempotente. Agrega a
 `transactions` los campos `source / external_id / pending / raw_ref`, crea
 `statement_imports`, `import_staging`, `parsing_rules`, `bank_connections`, y
 recrea las vistas de saldo para **excluir** movimientos pendientes.
@@ -114,7 +114,7 @@ recrea las vistas de saldo para **excluir** movimientos pendientes.
 
 ## 9. Agregador (Premium futuro)
 
-[supabase/functions/sync-aggregator/index.ts](supabase/functions/sync-aggregator/index.ts)
-es un stub. Cuando el negocio justifique el costo (~$1,000 USD/mes de Belvo),
+[sync-aggregator](https://github.com/anblsrz-oss/finzen-backend/blob/main/supabase/functions/sync-aggregator/index.ts)
+(repo `finzen-backend`) es un stub. Cuando el negocio justifique el costo (~$1,000 USD/mes de Belvo),
 se implementa el widget + webhooks y se insertan movimientos con
 `source='aggregator'`. La tabla `bank_connections` ya existe.
