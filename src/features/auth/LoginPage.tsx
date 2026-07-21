@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -21,8 +21,12 @@ type OtpStep = 'email' | 'code'
 export function LoginPage() {
   const { t } = useTranslation()
   const { session } = useAuth()
+  const [searchParams] = useSearchParams()
+  // La landing enlaza a /login?mode=signup para abrir directo el registro.
   const [method, setMethod] = useState<Method>('password')
-  const [pwMode, setPwMode] = useState<PwMode>('signin')
+  const [pwMode, setPwMode] = useState<PwMode>(
+    searchParams.get('mode') === 'signup' ? 'signup' : 'signin',
+  )
   const [otpStep, setOtpStep] = useState<OtpStep>('email')
 
   const [email, setEmail] = useState('')
@@ -74,18 +78,34 @@ export function LoginPage() {
     })
     setLoading(false)
     if (err) {
-      setError(err.message)
+      // Supabase puede responder "User already registered" en algunos casos.
+      setError(
+        /already registered|already exists/i.test(err.message)
+          ? t('Este correo ya tiene una cuenta. Inicia sesión o usa "¿Olvidaste tu contraseña?".')
+          : err.message,
+      )
       return
     }
-    // Si hay confirmación de correo activada, no hay sesión hasta confirmar.
+    // Para no filtrar qué correos existen, Supabase devuelve un usuario sin
+    // identidades (identities: []) cuando el correo YA está registrado, en vez
+    // de un error. Lo detectamos y guiamos a iniciar sesión / recuperar.
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      setError(
+        t('Este correo ya tiene una cuenta. Inicia sesión o usa "¿Olvidaste tu contraseña?".'),
+      )
+      return
+    }
+    // Con confirmación de correo activada no hay sesión hasta confirmar: se
+    // envía un enlace de verificación (que vence) al correo indicado.
     if (!data.session) {
       setInfo(
-        t('Te enviamos un correo a {{email}} para confirmar tu cuenta.', {
+        t('Te enviamos un correo a {{email}} para confirmar que es tuyo. Abre el enlace para activar tu cuenta.', {
           email: normalized,
         }),
       )
+      return
     }
-    // Si sí hay sesión, el <Navigate> de arriba redirige al panel.
+    // Si sí hay sesión (confirmación desactivada), el <Navigate> redirige.
   }
 
   async function handleSignIn() {

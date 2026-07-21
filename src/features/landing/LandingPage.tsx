@@ -142,7 +142,7 @@ export function LandingPage() {
           {t('Organiza ingresos, gastos, cuentas y tarjetas. Escanea recibos y entiende a dónde va tu dinero.')}
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link to="/login">
+          <Link to="/login?mode=signup">
             <Button size="lg">{t('Crear cuenta gratis')}</Button>
           </Link>
           <Link to="/login">
@@ -205,7 +205,7 @@ export function LandingPage() {
                 ⬇️ {t('Descargar app (Android)')}
               </Button>
             </a>
-            <Link to="/login">
+            <Link to="/login?mode=signup">
               <Button size="lg" variant="secondary">
                 {t('Empezar ahora')}
               </Button>
