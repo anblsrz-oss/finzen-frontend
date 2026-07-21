@@ -1,5 +1,5 @@
 {
-  "version": "0.3.1",
+  "version": "0.3.2",
   "apkUrl": "https://github.com/anblsrz-oss/finzen-frontend/releases/latest/download/finzen.apk",
-  "notes": "Tus tarjetas del mismo banco ya comparten un solo límite de crédito y las mismas fechas de corte y pago. Puedes marcar tarjetas como virtuales y elegir la marca de una lista. Si tu banco recorre las fechas por días inhábiles, la app te pregunta la fecha real. Al registrar meses sin intereses de un periodo anterior te pregunta si ya pagaste algunas mensualidades. Total de todas tus cuentas (se puede ocultar desde Ajustes). Los rendimientos ya aceptan la tasa anual que publican bancos y SOFIPOs, con plazo fijo y retención de ISR. Corregido: al guardar un movimiento la fecha ya no se recorre un día antes."
+  "notes": "Gráficos configurables: cambia colores por serie o categoría, oculta series, reordénalos y elige cuáles se exportan a Excel. Filtros en Transacciones para encontrar movimientos más rápido. Corregido: el tipo de cambio de un movimiento ahora usa la tasa de su fecha, no la de hoy."
 }
