@@ -1,5 +1,5 @@
 {
-  "version": "0.3.2",
+  "version": "0.4.0",
   "apkUrl": "https://github.com/anblsrz-oss/finzen-frontend/releases/latest/download/finzen.apk",
-  "notes": "Gráficos configurables: cambia colores por serie o categoría, oculta series, reordénalos y elige cuáles se exportan a Excel. Filtros en Transacciones para encontrar movimientos más rápido. Corregido: el tipo de cambio de un movimiento ahora usa la tasa de su fecha, no la de hoy."
+  "notes": "Ahora puedes editar transacciones ya registradas. Nuevo tipo \"Pago de tarjeta\": baja tu deuda y sale de la cuenta, sin contar como gasto nuevo. El consumo a crédito ya no baja tu balance como si fuera efectivo: en Reportes ves Ingresos, Egresos y Crédito usado, más dos balances (efectivo y económico). Las transferencias a cuentas que no son tuyas cuentan como egreso. Seguimiento de meses sin intereses mes a mes y, en cada línea de crédito, lo que debes pagar del periodo con botón para pagar."
 }
