@@ -5,6 +5,7 @@ import {
   useTransactions,
   useTransactionsCount,
   useDeleteTransaction,
+  useConfirmTransaction,
   useTransactionDeletions,
 } from '@/hooks/useTransactions'
 import type { TransactionFilter } from '@/hooks/useTransactions'
@@ -96,6 +97,7 @@ export function TransactionsPage() {
   const categoriesQuery = useCategories(userId)
   const deletionsQuery = useTransactionDeletions(userId)
   const deleteTx = useDeleteTransaction()
+  const confirmTx = useConfirmTransaction()
   const { transactionLimit } = useEntitlements()
 
   // Tarjetas compartidas de mi familia (para registrar gastos familiares).
@@ -336,6 +338,15 @@ export function TransactionsPage() {
                   <Money amount={tx.amount} currency={tx.currency} />
                 </p>
                 <div className="flex items-center gap-3">
+                  {tx.pending && (
+                    <button
+                      onClick={() => confirmTx.mutate({ id: tx.id, userId: userId! })}
+                      disabled={confirmTx.isPending}
+                      className="text-xs font-medium text-green-600 hover:text-green-700 disabled:opacity-50"
+                    >
+                      ✓ {t('Confirmar')}
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       setShowForm(false)

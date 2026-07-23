@@ -315,6 +315,33 @@ export function useDeleteTransaction() {
   })
 }
 
+// Confirma un movimiento pendiente (pending -> false). Los movimientos de las
+// sincronizaciones entran como pendientes y las vistas de saldo los excluyen;
+// al confirmarlos empiezan a contar en los saldos.
+export function useConfirmTransaction() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; userId: string }) => {
+      const { error } = await supabase
+        .from('transactions')
+        .update({ pending: false })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: (_data, input) => {
+      queryClient.invalidateQueries({ queryKey: ['transactions', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['transactions_pending_count', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['account_balances', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['card_usage', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['credit_line_usage', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['credit_activity', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['transactions_summary', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['monthly_totals', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['category_totals', input.userId] })
+    },
+  })
+}
+
 // Historial de transacciones eliminadas (con motivo).
 export function useTransactionDeletions(userId?: string) {
   return useQuery({
