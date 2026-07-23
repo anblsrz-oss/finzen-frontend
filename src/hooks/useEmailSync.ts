@@ -41,7 +41,19 @@ export function useSyncEmail() {
       const { data, error } = await supabase.functions.invoke('sync-email', {
         body: { providerToken, accountId, sinceDays },
       })
-      if (error) throw error
+      if (error) {
+        // En un fallo non-2xx, supabase-js pone la respuesta real en `context`;
+        // extraemos el `error` del cuerpo para mostrar la causa, no el genérico.
+        let detail = error.message
+        try {
+          const ctx = (error as { context?: Response }).context
+          const body = ctx && typeof ctx.json === 'function' ? await ctx.json() : null
+          if (body?.error) detail = body.error
+        } catch {
+          /* si no se puede leer el cuerpo, queda el mensaje genérico */
+        }
+        throw new Error(detail)
+      }
       if ((data as SyncResult)?.error) throw new Error((data as SyncResult).error)
       return data as SyncResult
     },
