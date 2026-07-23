@@ -118,6 +118,28 @@ export function useTransactionsCount(userId?: string) {
   })
 }
 
+// Cuenta de movimientos pendientes por revisar (los que crean las
+// sincronizaciones de correo/SMS entran así). Alimenta el badge de la
+// navegación. `head: true` no trae filas, solo el conteo.
+export function usePendingCount(userId?: string) {
+  return useQuery({
+    queryKey: ['transactions_pending_count', userId],
+    queryFn: async () => {
+      if (!userId) return 0
+      const { count, error } = await supabase
+        .from('transactions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .is('family_id', null)
+        .eq('pending', true)
+      if (error) throw error
+      return count ?? 0
+    },
+    enabled: !!userId,
+    refetchOnWindowFocus: true,
+  })
+}
+
 export function useCreateTransaction() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -179,6 +201,7 @@ export function useCreateTransaction() {
     },
     onSuccess: (_data, input) => {
       queryClient.invalidateQueries({ queryKey: ['transactions', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['transactions_pending_count', input.userId] })
       queryClient.invalidateQueries({ queryKey: ['transactions_count', input.userId] })
       queryClient.invalidateQueries({ queryKey: ['account_balances', input.userId] })
       queryClient.invalidateQueries({ queryKey: ['card_usage', input.userId] })
@@ -252,6 +275,7 @@ export function useUpdateTransaction() {
     },
     onSuccess: (_data, input) => {
       queryClient.invalidateQueries({ queryKey: ['transactions', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['transactions_pending_count', input.userId] })
       queryClient.invalidateQueries({ queryKey: ['account_balances', input.userId] })
       queryClient.invalidateQueries({ queryKey: ['card_usage', input.userId] })
       queryClient.invalidateQueries({ queryKey: ['credit_line_usage', input.userId] })
@@ -277,6 +301,7 @@ export function useDeleteTransaction() {
     },
     onSuccess: (_data, input) => {
       queryClient.invalidateQueries({ queryKey: ['transactions', input.userId] })
+      queryClient.invalidateQueries({ queryKey: ['transactions_pending_count', input.userId] })
       queryClient.invalidateQueries({ queryKey: ['transactions_count', input.userId] })
       queryClient.invalidateQueries({ queryKey: ['account_balances', input.userId] })
       queryClient.invalidateQueries({ queryKey: ['card_usage', input.userId] })

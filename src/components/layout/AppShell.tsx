@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useSettings } from '@/store/useSettings'
+import { usePendingCount } from '@/hooks/useTransactions'
 import { APK_URL } from '@/lib/appUpdate'
 import { isNative } from '@/lib/nativeAuth'
 
@@ -53,9 +54,20 @@ const MORE_NAV: NavItem[] = [
   { to: '/configuracion', label: 'Ajustes', icon: '⚙️' },
 ]
 
+// Insignia con el número de movimientos pendientes por revisar.
+function PendingBadge({ count }: { count: number }) {
+  if (count <= 0) return null
+  return (
+    <span className="ml-auto inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500 px-1.5 text-[11px] font-semibold leading-5 text-white">
+      {count > 99 ? '99+' : count}
+    </span>
+  )
+}
+
 export function AppShell() {
   const { t } = useTranslation()
-  const { profile } = useAuth()
+  const { profile, session } = useAuth()
+  const pendingCount = usePendingCount(session?.user?.id).data ?? 0
   const hideAmounts = useSettings((s) => s.hideAmounts)
   const toggleHideAmounts = useSettings((s) => s.toggleHideAmounts)
   const [moreOpen, setMoreOpen] = useState(false)
@@ -98,6 +110,7 @@ export function AppShell() {
             >
               <span>{item.icon}</span>
               {t(item.label)}
+              {item.to === '/transacciones' && <PendingBadge count={pendingCount} />}
             </NavLink>
           ))}
           {profile?.is_admin && (
@@ -223,7 +236,14 @@ export function AppShell() {
               }`
             }
           >
-            <span className="text-lg">{item.icon}</span>
+            <span className="relative text-lg">
+              {item.icon}
+              {item.to === '/transacciones' && pendingCount > 0 && (
+                <span className="absolute -right-2 -top-1 inline-flex min-w-[1rem] items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-semibold leading-4 text-white">
+                  {pendingCount > 99 ? '99+' : pendingCount}
+                </span>
+              )}
+            </span>
             {t(item.label)}
           </NavLink>
         ))}

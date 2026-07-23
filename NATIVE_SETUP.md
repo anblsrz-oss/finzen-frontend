@@ -79,6 +79,10 @@ Falta registrar el esquema `com.ahorbit.app://auth-callback` en cada plataforma:
 - Requiere el scope `https://www.googleapis.com/auth/gmail.readonly`. El botón
   "Conectar Gmail" ya lo pide. En Google Cloud, habilita la **Gmail API** y agrega
   ese scope en la pantalla de consentimiento OAuth.
+- **`Error 403: access_denied` al conectar** = la app OAuth está en modo *Testing*
+  y `gmail.readonly` es un scope restringido. Solución: Google Cloud → *Pantalla de
+  consentimiento de OAuth* → **Usuarios de prueba** → añadir el correo de cada
+  usuario (máx. 100). Para uso público habría que pasar la verificación de Google.
 - Desplegar la función: `npx supabase functions deploy sync-email` (usa
   `SUPABASE_URL` y `SUPABASE_ANON_KEY`, ya presentes en el entorno de Functions).
 - El usuario configura remitentes por banco (se guardan en `parsing_rules`,

@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/store/useAuth'
 import { useAccounts } from '@/hooks/useAccounts'
-import { useParsingRules, useSaveParsingRule } from '@/hooks/useImports'
+import {
+  useParsingRules,
+  useSaveParsingRule,
+  useDeleteParsingRule,
+} from '@/hooks/useImports'
+import type { ParsingRuleRow } from '@/types/db'
 import {
   connectGmail,
   getProviderToken,
@@ -22,6 +27,7 @@ export function EmailSyncPage() {
   const accountsQuery = useAccounts(userId)
   const rulesQuery = useParsingRules(userId, 'email')
   const saveRule = useSaveParsingRule()
+  const deleteRule = useDeleteParsingRule()
   const syncEmail = useSyncEmail()
 
   const accounts = accountsQuery.data || []
@@ -40,6 +46,7 @@ export function EmailSyncPage() {
   const [kind, setKind] = useState<'expense' | 'income'>('expense')
   const [last4Regex, setLast4Regex] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   useEffect(() => {
     // Al volver del consentimiento de Gmail, la sesión trae el provider_token.
@@ -68,8 +75,25 @@ export function EmailSyncPage() {
     }
   }
 
+  function resetForm() {
+    setBankName('')
+    setSenders('')
+    setAmountRegex('')
+    setConceptRegex('')
+    setCurrency('')
+    setKind('expense')
+    setLast4Regex('')
+    setShowAdvanced(false)
+    setEditingId(null)
+  }
+
   async function handleSaveRule() {
     if (!userId || !bankName.trim() || !senders.trim()) return
+    // Si se renombró el banco durante la edición, el upsert (por bank_name)
+    // crearía una regla nueva; borramos la vieja para no duplicar.
+    if (editingId && rules.find((r) => r.id === editingId)?.bank_name !== bankName.trim()) {
+      await deleteRule.mutateAsync({ userId, id: editingId })
+    }
     await saveRule.mutateAsync({
       userId,
       bankName: bankName.trim(),
@@ -86,14 +110,27 @@ export function EmailSyncPage() {
         last4Regex: last4Regex.trim() || undefined,
       },
     })
-    setBankName('')
-    setSenders('')
-    setAmountRegex('')
-    setConceptRegex('')
-    setCurrency('')
-    setKind('expense')
-    setLast4Regex('')
-    setShowAdvanced(false)
+    resetForm()
+  }
+
+  function handleEditRule(r: ParsingRuleRow) {
+    setEditingId(r.id)
+    setBankName(r.bank_name)
+    setSenders((r.config.senders ?? []).join(', '))
+    setAmountRegex(r.config.amountRegex ?? '')
+    setConceptRegex(r.config.conceptRegex ?? '')
+    setCurrency(r.config.currency ?? '')
+    setKind(r.config.kind === 'income' ? 'income' : 'expense')
+    setLast4Regex(r.config.last4Regex ?? '')
+    setShowAdvanced(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  async function handleDeleteRule(r: ParsingRuleRow) {
+    if (!userId) return
+    if (!window.confirm(t('¿Borrar el remitente "{{name}}"?', { name: r.bank_name }))) return
+    if (editingId === r.id) resetForm()
+    await deleteRule.mutateAsync({ userId, id: r.id })
   }
 
   return (
@@ -107,20 +144,44 @@ export function EmailSyncPage() {
         {/* Reglas por banco */}
         <Card className="grid gap-3">
           <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-            {t('1. Remitentes (banco o proveedor)')}
+            {editingId
+              ? t('Editando: {{name}}', { name: bankName })
+              : t('1. Remitentes (banco o proveedor)')}
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             {t('Indica de qué correos llegan las alertas o tickets (ej.')}{' '}
             <code>notificaciones@bbva.mx</code>). {t('Solo se leen esos correos. Las facturas CFDI (XML) se leen automáticamente sin configurar regex.')}
           </p>
           {rules.length > 0 && (
-            <ul className="text-sm text-slate-600 dark:text-slate-300">
+            <ul className="grid gap-1 text-sm text-slate-600 dark:text-slate-300">
               {rules.map((r) => (
-                <li key={r.id}>
-                  <strong>{r.bank_name}:</strong>{' '}
-                  {(r.config.senders ?? []).join(', ')}
-                  {r.config.kind === 'income' && ` · ${t('ingreso')}`}
-                  {r.config.currency && ` · ${r.config.currency}`}
+                <li
+                  key={r.id}
+                  className="flex items-center justify-between gap-2 rounded-md px-1 py-0.5 hover:bg-slate-100 dark:hover:bg-slate-800/60"
+                >
+                  <span className="min-w-0 truncate">
+                    <strong>{r.bank_name}:</strong>{' '}
+                    {(r.config.senders ?? []).join(', ')}
+                    {r.config.kind === 'income' && ` · ${t('ingreso')}`}
+                    {r.config.currency && ` · ${r.config.currency}`}
+                  </span>
+                  <span className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleEditRule(r)}
+                      className="text-xs font-medium text-brand-700 dark:text-brand-500 hover:underline"
+                    >
+                      {t('Editar')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteRule(r)}
+                      disabled={deleteRule.isPending}
+                      className="text-xs font-medium text-red-600 hover:underline disabled:opacity-50"
+                    >
+                      {t('Borrar')}
+                    </button>
+                  </span>
                 </li>
               ))}
             </ul>
@@ -190,14 +251,19 @@ export function EmailSyncPage() {
             </div>
           )}
 
-          <div>
+          <div className="flex gap-2">
             <Button
               variant="secondary"
               onClick={handleSaveRule}
               disabled={!bankName.trim() || !senders.trim() || saveRule.isPending}
             >
-              {t('Guardar remitente')}
+              {editingId ? t('Guardar cambios') : t('Guardar remitente')}
             </Button>
+            {editingId && (
+              <Button variant="ghost" onClick={resetForm}>
+                {t('Cancelar')}
+              </Button>
+            )}
           </div>
         </Card>
 
@@ -240,6 +306,9 @@ export function EmailSyncPage() {
               {t('Agrega al menos un remitente arriba antes de sincronizar.')}
             </p>
           )}
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            {t('¿Error 403 / "Acceso bloqueado" al conectar? Tu correo debe estar añadido como usuario de prueba en la pantalla de consentimiento de OAuth en Google Cloud.')}
+          </p>
           <p className="text-xs text-slate-400 dark:text-slate-500">
             {t('Los movimientos se crean como pendientes: revísalos y confírmalos en Transacciones para que cuenten en tus saldos.')}
           </p>

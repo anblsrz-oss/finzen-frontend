@@ -47,6 +47,7 @@ export function useSyncEmail() {
     },
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ['transactions', vars.userId] })
+      queryClient.invalidateQueries({ queryKey: ['transactions_pending_count', vars.userId] })
     },
   })
 }

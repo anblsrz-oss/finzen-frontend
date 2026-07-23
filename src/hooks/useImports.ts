@@ -174,3 +174,20 @@ export function useSaveParsingRule() {
     },
   })
 }
+
+export function useDeleteParsingRule() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: { userId: string; id: string }) => {
+      const { error } = await supabase
+        .from('parsing_rules')
+        .delete()
+        .eq('id', input.id)
+        .eq('user_id', input.userId)
+      if (error) throw error
+    },
+    onSuccess: (_data, input) => {
+      queryClient.invalidateQueries({ queryKey: ['parsing_rules', input.userId] })
+    },
+  })
+}
