@@ -1,5 +1,5 @@
 {
-  "version": "0.5.0",
+  "version": "0.6.0",
   "apkUrl": "https://github.com/anblsrz-oss/finzen-frontend/releases/latest/download/finzen.apk",
-  "notes": "Nueva sección Líneas de crédito (límites, fechas y pago) separada de Tarjetas. Nuevo tipo de tarjeta: Vales de despensa. Retiro de efectivo: cuenta como gasto solo cuando lo destinas a un pago; si solo lo tienes en la cartera, aún no. Ahora guardas el banco de cada tarjeta y puedes agrupar la lista por banco, tipo, formato o línea de crédito. La sincronización de correo funciona con proveedores (no solo bancos): detecta moneda, concepto y la terminación de la tarjeta para asignarla sola. Y puedes registrarte e iniciar sesión con correo y contraseña (nombre y apellido), con recuperación de contraseña; el acceso por código y con Google siguen disponibles."
+  "notes": "Sincronización de correo mejorada: ahora puedes editar y borrar los remitentes que ya tenías guardados, y si Google rechaza el permiso (403) la app te lo avisa con el motivo real en vez de un error genérico. Los movimientos detectados por correo llegan como pendientes: verás un badge con cuántos hay por revisar y un botón \"Confirmar\" para aceptarlos uno a uno desde la lista de transacciones."
 }
